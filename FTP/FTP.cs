@@ -89,7 +89,7 @@ namespace FTP {
                 DragItem.Add("Visible", true);
                 DragItem.Add("Text", "Drag -> FTP");
                 DragItem.Add("Image", this.bmpIcon);
-                DragItem.Add("Action", new Action(delegate { this.Drag(new Action<Image>(UploadImage)); }));
+                DragItem.Add("Action", new Action(delegate { this.Drag(new Action<DragCallback>(DragCallback)); }));
                 DragItem.Add("ShortcutModifiers", this.shortCutDragModifiers);
                 DragItem.Add("ShortcutKey", this.shortCutDragKey);
                 ret.Add(DragItem);
@@ -111,6 +111,18 @@ namespace FTP {
             new FormSettings(this).ShowDialog();
         }
 
+        public void DragCallback(DragCallback callback) {
+            switch (callback.Type) {
+                case DragCallbackType.Image:
+                    UploadImage(callback.Image);
+                    break;
+
+                case DragCallbackType.Animation:
+                    UploadAnimation(callback.Animation);
+                    break;
+            }
+        }
+
         public void UploadImage(Image img) {
             Icon defIcon = (Icon)Tray.Icon.Clone();
             Tray.Icon = new Icon("Addons/FTP/Icon.ico");
@@ -125,6 +137,7 @@ namespace FTP {
             }
 
             img.Save(ms, format);
+            img.Dispose();
 
             bool result = false;
             string failReason = "";
@@ -142,6 +155,7 @@ namespace FTP {
 
                 filename += "." + imageFormat.ToLower();
 
+                this.Backup(ms.GetBuffer(), filename);
                 canceled = !UploadToFTP(ms, filename);
 
                 result = true;
@@ -153,8 +167,52 @@ namespace FTP {
                     this.AddLog(url);
                     this.SetClipboardText(url);
                     Tray.ShowBalloonTip(1000, "Upload success!", "Image uploaded to FTP and URL copied to clipboard.", ToolTipIcon.Info);
-                } else
+                } else {
+                    this.ProgressBar.Done();
                     Tray.ShowBalloonTip(1000, "Upload failed!", "Something went wrong, probably on your FTP server. Try again.\nMessage: '" + failReason + "'", ToolTipIcon.Error);
+                }
+            }
+
+            Tray.Icon = defIcon;
+        }
+
+        public void UploadAnimation(MemoryStream ms) {
+            Icon defIcon = (Icon)Tray.Icon.Clone();
+            Tray.Icon = new Icon("Addons/FTP/Icon.ico");
+
+            bool result = false;
+            string failReason = "";
+            string filename = "";
+
+            bool canceled = false;
+            try {
+                filename = this.RandomFilename(this.settings.GetInt("Length"));
+                if (this.useMD5) {
+                    filename = MD5(filename + rnd.Next(1000, 9999).ToString());
+
+                    if (this.shortMD5)
+                        filename = filename.Substring(0, this.length);
+                }
+
+                filename += ".gif";
+
+                canceled = !UploadToFTP(ms, filename);
+
+                this.Backup(ms.GetBuffer(), filename);
+
+                result = true;
+            } catch (Exception ex) { failReason = ex.Message; }
+
+            if (!canceled) {
+                if (result) {
+                    string url = ftpHttp + filename;
+                    this.AddLog(url);
+                    this.SetClipboardText(url);
+                    Tray.ShowBalloonTip(1000, "Upload success!", "Animation uploaded to FTP and URL copied to clipboard.", ToolTipIcon.Info);
+                } else {
+                    this.ProgressBar.Done();
+                    Tray.ShowBalloonTip(1000, "Upload failed!", "Something went wrong, probably on your FTP server. Try again.\nMessage: '" + failReason + "'", ToolTipIcon.Error);
+                }
             }
 
             Tray.Icon = defIcon;
@@ -184,6 +242,8 @@ namespace FTP {
 
                 canceled = !UploadToFTP(ms, filename);
 
+                this.Backup(ms.GetBuffer(), filename);
+
                 result = true;
             } catch (Exception ex) { failReason = ex.Message; }
 
@@ -193,8 +253,10 @@ namespace FTP {
                     this.AddLog(url);
                     this.SetClipboardText(url);
                     Tray.ShowBalloonTip(1000, "Upload success!", "Text uploaded to FTP and URL copied to clipboard.", ToolTipIcon.Info);
-                } else
+                } else {
+                    this.ProgressBar.Done();
                     Tray.ShowBalloonTip(1000, "Upload failed!", "Something went wrong, probably on your FTP server. Try again.\nMessage: '" + failReason + "'", ToolTipIcon.Error);
+                }
             }
 
             Tray.Icon = defIcon;
@@ -231,8 +293,10 @@ namespace FTP {
                 if (result) {
                     this.SetClipboardText(finalCopy.Substring(0, finalCopy.Length - 1));
                     Tray.ShowBalloonTip(1000, "Upload success!", "File(s) uploaded to your FTP folder and URL(s) copied.", ToolTipIcon.Info);
-                } else
+                } else {
+                    this.ProgressBar.Done();
                     Tray.ShowBalloonTip(1000, "Upload failed!", "Something went wrong, probably on your FTP server. Try again.\nMessage: '" + failReason + "'", ToolTipIcon.Error);
+                }
             }
 
             Tray.Icon = defIcon;

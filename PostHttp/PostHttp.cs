@@ -67,7 +67,7 @@ namespace PostHttp {
             DragItem.Add("Visible", true);
             DragItem.Add("Text", "Drag -> " + this.endpointName);
             DragItem.Add("Image", this.bmpIcon);
-            DragItem.Add("Action", new Action(delegate { this.Drag(new Action<Image>(UploadImage)); }));
+            DragItem.Add("Action", new Action(delegate { this.Drag(new Action<DragCallback>(DragCallback)); }));
             DragItem.Add("ShortcutModifiers", this.shortCutDragModifiers);
             DragItem.Add("ShortcutKey", this.shortCutDragKey);
             ret.Add(DragItem);
@@ -88,6 +88,18 @@ namespace PostHttp {
             new FormSettings(this).ShowDialog();
         }
 
+        public void DragCallback(DragCallback callback) {
+            switch (callback.Type) {
+                case DragCallbackType.Image:
+                    UploadImage(callback.Image);
+                    break;
+
+                case DragCallbackType.Animation:
+                    UploadAnimation(callback.Animation);
+                    break;
+            }
+        }
+
         public void UploadImage(Image img) {
             Icon defIcon = (Icon)Tray.Icon.Clone();
             Tray.Icon = new Icon("Addons/PostHttp/Icon.ico");
@@ -106,12 +118,52 @@ namespace PostHttp {
             string result = UploadToEndPoint(ms, this.endpointName);
 
             if (result != "CANCELED") {
+                string filename = "";
+
                 if (result.StartsWith("http")) {
                     this.SetClipboardText(result);
                     this.AddLog(result);
                     Tray.ShowBalloonTip(1000, "Upload success!", "Image uploaded to " + endpointName + " and URL copied to clipboard.", ToolTipIcon.Info);
-                } else
+
+                    filename = result.Split('/', '\\').Last();
+                } else {
+                    this.ProgressBar.Done();
                     Tray.ShowBalloonTip(1000, "Upload failed!", "Something went wrong, probably on " + endpointName + "'s side. Try again.", ToolTipIcon.Error);
+                }
+
+                if (filename != "")
+                    this.Backup(ms.GetBuffer(), filename);
+                else
+                    this.Backup(ms.GetBuffer(), this.RandomFilename(5) + "." + imageFormat.ToLower());
+            }
+
+            Tray.Icon = defIcon;
+        }
+
+        public void UploadAnimation(MemoryStream ms) {
+            Icon defIcon = (Icon)Tray.Icon.Clone();
+            Tray.Icon = new Icon("Addons/PostHttp/Icon.ico");
+
+            string result = UploadToEndPoint(ms, this.endpointName);
+
+            if (result != "CANCELED") {
+                string filename = "";
+
+                if (result.StartsWith("http")) {
+                    this.SetClipboardText(result);
+                    this.AddLog(result);
+                    Tray.ShowBalloonTip(1000, "Upload success!", "Animation uploaded to " + endpointName + " and URL copied to clipboard.", ToolTipIcon.Info);
+
+                    filename = result.Split('/', '\\').Last();
+                } else {
+                    this.ProgressBar.Done();
+                    Tray.ShowBalloonTip(1000, "Upload failed!", "Something went wrong, probably on " + endpointName + "'s side. Try again.", ToolTipIcon.Error);
+                }
+
+                if (filename != "")
+                    this.Backup(ms.GetBuffer(), filename);
+                else
+                    this.Backup(ms.GetBuffer(), this.RandomFilename(5) + ".gif");
             }
 
             Tray.Icon = defIcon;
@@ -124,12 +176,23 @@ namespace PostHttp {
             string result = UploadToEndPoint(new MemoryStream(Encoding.ASCII.GetBytes(Text)), this.endpointName);
 
             if (result != "CANCELED") {
+                string filename = "";
+
                 if (result.StartsWith("http")) {
                     this.SetClipboardText(result);
                     this.AddLog(result);
                     Tray.ShowBalloonTip(1000, "Upload success!", "Image uploaded to " + endpointName + " and URL copied to clipboard.", ToolTipIcon.Info);
-                } else
+
+                    filename = result.Split('/', '\\').Last();
+                } else {
+                    this.ProgressBar.Done();
                     Tray.ShowBalloonTip(1000, "Upload failed!", "Something went wrong, probably on " + endpointName + "'s side. Try again.", ToolTipIcon.Error);
+                }
+
+                if (filename != "")
+                    this.Backup(Encoding.ASCII.GetBytes(Text), filename);
+                else
+                    this.Backup(Encoding.ASCII.GetBytes(Text), this.RandomFilename(5) + "." + imageFormat.ToLower());
             }
 
             Tray.Icon = defIcon;
@@ -161,8 +224,10 @@ namespace PostHttp {
                 if (finalCopy != "") {
                     this.SetClipboardText(finalCopy.Substring(0, finalCopy.Length - 1));
                     Tray.ShowBalloonTip(1000, "Upload success!", "Image(s) uploaded to " + endpointName + " and URL(s) copied to clipboard.", ToolTipIcon.Info);
-                } else
+                } else {
+                    this.ProgressBar.Done();
                     Tray.ShowBalloonTip(1000, "Upload failed!", "You didn't copy any files or " + endpointName + "'s server didn't give an appropriate reply.", ToolTipIcon.Error);
+                }
             }
 
             Tray.Icon = defIcon;

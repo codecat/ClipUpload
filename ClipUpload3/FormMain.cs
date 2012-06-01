@@ -13,6 +13,7 @@ using GlobalHook;
 using GlobalHook.WinApi;
 using System.Diagnostics;
 using System.Net;
+using System.Threading;
 
 namespace ClipUpload3 {
     public partial class FormMain : Form {
@@ -30,10 +31,12 @@ namespace ClipUpload3 {
 
         bool mustExit = false;
         bool mustHide = false;
+        string canUpdate = "";
 
         public string Version;
 
-        KeyboardHookListener keyboardListener;
+        public KeyboardHookListener keyboardListener;
+        public KeyEventHandler keyboardHandler;
 
         public FormMain() {
             InitializeComponent();
@@ -65,30 +68,36 @@ namespace ClipUpload3 {
                     WebClient wc = new WebClient();
                     wc.Proxy = null;
                     string latestVersion = wc.DownloadString("http://" + "clipupload.net/?update");
-                    if (latestVersion != Version)
-                        this.Tray.ShowBalloonTip(10, "ClipUpload Update", "A new update for ClipUpload is available, version " + latestVersion + ". Visit http://" + "clipupload.net/ to download the latest version!", ToolTipIcon.Info);
+                    if (latestVersion != Version) {
+                        this.canUpdate = latestVersion;
+                        this.Tray.ShowBalloonTip(10, "ClipUpload Update", "A new update for ClipUpload is available, version " + latestVersion + ". Click \"Update to " + latestVersion + "\" in the ClipUpload menu to automatically update.", ToolTipIcon.Info);
+                    }
                 } catch { }
             }
 
             if (curDir != Directory.GetCurrentDirectory())
                 mustHide = true;
 
+            keyboardHandler = new KeyEventHandler(keyboardListener_KeyDown);
+
             this.keyboardListener = new KeyboardHookListener(new GlobalHooker());
             this.keyboardListener.Enabled = true;
-            this.keyboardListener.KeyDown += new KeyEventHandler(keyboardListener_KeyDown);
+            this.keyboardListener.KeyDown += keyboardHandler;
         }
 
         public void LoadSettings() {
-            if (!this.settings.Contains("ProgressBar")) {
+            if (this.settings.GetString("Version") == "3.00") {
                 // Migrate from old 3.00 config file
+                this.settings.SetString("Version", "3.01");
                 this.settings.SetBool("ProgressBar", true);
                 this.settings.SetBool("PortableProgressBar", false);
 
                 this.settings.Save();
             }
 
-            if (!this.settings.Contains("ProxyEnabled")) {
+            if (this.settings.GetString("Version") == "3.01") {
                 // Migrate from old 3.01 config file
+                this.settings.SetString("Version", "3.02");
                 this.settings.SetBool("ProxyEnabled", false);
                 this.settings.SetString("ProxyHost", "");
                 this.settings.SetInt("ProxyPort", 8080);
@@ -98,11 +107,31 @@ namespace ClipUpload3 {
                 this.settings.Save();
             }
 
-            if (!this.settings.Contains("DragExtra")) {
+            if (this.settings.GetString("Version") == "3.02") {
                 // Migrate from old 3.02 config file
+                this.settings.SetString("Version", "3.03");
                 this.settings.SetBool("DragExtra", false);
                 this.settings.SetString("DragExtraName", "Paint");
                 this.settings.SetString("DragExtraPath", "C:\\Windows\\system32\\mspaint.exe");
+
+                this.settings.Save();
+            }
+
+            if (this.settings.GetString("Version") == "3.03") {
+                // Migrate from old 3.03 config file
+                this.settings.SetString("Version", "3.04");
+
+                this.settings.Save();
+            }
+
+            if (this.settings.GetString("Version") == "3.04") {
+                // Migrate from old 3.04 config file
+                this.settings.SetString("Version", "3.10");
+                this.settings.SetInt("DragEditor", 1);
+                this.settings.SetInt("DragAnimFPS", 10);
+                this.settings.SetBool("BackupsEnabled", false);
+                this.settings.SetString("BackupsPath", "Backup");
+                this.settings.SetString("BackupsFormat", "%DATE% %TIME% %FILENAME%");
 
                 this.settings.Save();
             }
@@ -178,9 +207,11 @@ namespace ClipUpload3 {
             int c = 0;
             foreach (Addon addon in Addons) {
                 string Icon = addon.Directory + "\\" + addon.Settings.GetString("Icon");
-                if (Icon.EndsWith(".ico"))
-                    imgList.Images.Add(new Icon(Icon));
-                else
+                if (Icon.EndsWith(".ico")) {
+                    try {
+                        imgList.Images.Add(new Icon(Icon));
+                    } catch { imgList.Images.Add(Image.FromFile(Icon)); }
+                } else
                     imgList.Images.Add(Image.FromFile(Icon));
 
                 ListViewItem lvi = listAddons.Items.Add(addon.Settings.GetString("Name"));
@@ -252,6 +283,15 @@ namespace ClipUpload3 {
             }
         }
 
+        private void listAddons_MouseDoubleClick(object sender, MouseEventArgs e) {
+            if (listAddons.SelectedItems.Count == 1) {
+                Addon addon = Addons[listAddons.SelectedItems[0].Index];
+                if (addon.Settings.GetBool("Enabled")) {
+                    addon.CallHook("Settings");
+                }
+            }
+        }
+
         private void button2_Click(object sender, EventArgs e) {
             UpdateList();
 
@@ -288,12 +328,14 @@ namespace ClipUpload3 {
                                    (shift || !shortcut.ModShift) &&
                                    (alt || !shortcut.ModAlt);
                 if (modifiersOK && e.KeyCode == shortcut.Key)
-                    shortcut.Action.Invoke();
+                    shortcut.Action();
             }
         }
 
         private void Tray_MouseDown(object sender, MouseEventArgs e) {
             if (e.Button == MouseButtons.Right) {
+                GC.Collect();
+
                 ContextMenuStrip cms = new ContextMenuStrip();
                 ToolStripMenuItem tsi;
 
@@ -301,16 +343,18 @@ namespace ClipUpload3 {
                     int MenuItemsAdded = 0;
 
                     Hashtable[] MenuItems = addon.CallHook2<Hashtable[]>("Menu", new Hashtable[0]);
-                    foreach (Hashtable MenuItem in MenuItems) {
-                        if ((bool)MenuItem["Visible"]) {
-                            tsi = (ToolStripMenuItem)cms.Items.Add((string)MenuItem["Text"]);
-                            tsi.Image = (Image)MenuItem["Image"];
-                            Hashtable temp = (Hashtable)MenuItem.Clone();
+                    for (int i = 0; i < MenuItems.Length; i++) {
+                        if ((bool)MenuItems[i]["Visible"]) {
+                            tsi = (ToolStripMenuItem)cms.Items.Add((string)MenuItems[i]["Text"]);
+                            tsi.Image = (Image)MenuItems[i]["Image"];
+
+                            Action temp = (MenuItems[i]["Action"] as Action);
                             tsi.Click += new EventHandler(delegate {
-                                ((Action)temp["Action"]).Invoke();
+                                temp.Invoke();
                             });
-                            if (MenuItem.ContainsKey("ShortcutModifiers") && MenuItem.Contains("ShortcutKey"))
-                                tsi.ShortcutKeyDisplayString = ((string)MenuItem["ShortcutModifiers"] + "+" + (string)MenuItem["ShortcutKey"]).Trim('+');
+
+                            if (MenuItems[i].ContainsKey("ShortcutModifiers") && MenuItems[i].Contains("ShortcutKey"))
+                                tsi.ShortcutKeyDisplayString = ((string)MenuItems[i]["ShortcutModifiers"] + "+" + (string)MenuItems[i]["ShortcutKey"]).Trim('+');
 
                             MenuItemsAdded++;
                         }
@@ -328,11 +372,36 @@ namespace ClipUpload3 {
                 tsi.Image = this.iconList.Images[1];
                 tsi.Click += new EventHandler(delegate { button7_Click(null, null); });
 
+                if (settings.GetBool("BackupsEnabled")) {
+                    tsi = (ToolStripMenuItem)cms.Items.Add("Backups");
+                    tsi.Image = this.iconList.Images[4];
+                    tsi.Click += new EventHandler(delegate {
+                        Process.Start("explorer", "\"" + Path.GetFullPath(settings.GetString("BackupsPath")) + "\"");
+                    });
+                }
+
+                if (this.canUpdate != "") {
+                    tsi = (ToolStripMenuItem)cms.Items.Add("Update to " + this.canUpdate);
+                    tsi.Image = this.iconList.Images[5];
+                    tsi.Click += new EventHandler(delegate {
+                        if (File.Exists("Updater.exe")) {
+                            Process.Start("Updater.exe");
+                            this.KillMe();
+                        }
+                    });
+                }
+
                 tsi = (ToolStripMenuItem)cms.Items.Add("Exit");
                 tsi.Click += new EventHandler(delegate { KillMe(); });
 
                 Tray.ContextMenuStrip = cms;
             }
+        }
+
+        private void Tray_BalloonTipClicked(object sender, EventArgs e) {
+            // When the notify balloon tip is shown, this will always be called when the icon is clicked,
+            // which cancels out the above event. Thus, we redirect this one in that case to the above method.
+            Tray_MouseDown(null, new MouseEventArgs(MouseButtons.Right, 0, 0, 0, 0));
         }
 
         private void Tray_DoubleClick(object sender, EventArgs e) {

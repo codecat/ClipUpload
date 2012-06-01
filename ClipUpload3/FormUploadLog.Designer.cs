@@ -48,7 +48,7 @@
             this.button1.Location = new System.Drawing.Point(424, 290);
             this.button1.Name = "button1";
             this.button1.Size = new System.Drawing.Size(75, 23);
-            this.button1.TabIndex = 0;
+            this.button1.TabIndex = 6;
             this.button1.Text = "OK";
             this.button1.UseVisualStyleBackColor = true;
             this.button1.Click += new System.EventHandler(this.button1_Click);
@@ -63,7 +63,7 @@
             this.listLog.MultiSelect = false;
             this.listLog.Name = "listLog";
             this.listLog.Size = new System.Drawing.Size(487, 272);
-            this.listLog.TabIndex = 1;
+            this.listLog.TabIndex = 0;
             this.listLog.UseCompatibleStateImageBehavior = false;
             this.listLog.View = System.Windows.Forms.View.Details;
             this.listLog.SelectedIndexChanged += new System.EventHandler(this.listLog_SelectedIndexChanged);
@@ -83,7 +83,7 @@
             this.button2.Location = new System.Drawing.Point(343, 290);
             this.button2.Name = "button2";
             this.button2.Size = new System.Drawing.Size(75, 23);
-            this.button2.TabIndex = 2;
+            this.button2.TabIndex = 5;
             this.button2.Text = "Clear";
             this.button2.UseVisualStyleBackColor = true;
             this.button2.Click += new System.EventHandler(this.button2_Click);
@@ -103,7 +103,7 @@
             this.button4.Location = new System.Drawing.Point(93, 290);
             this.button4.Name = "button4";
             this.button4.Size = new System.Drawing.Size(75, 23);
-            this.button4.TabIndex = 4;
+            this.button4.TabIndex = 2;
             this.button4.Text = "Copy Time";
             this.button4.UseVisualStyleBackColor = true;
             this.button4.Click += new System.EventHandler(this.button4_Click);
@@ -113,7 +113,7 @@
             this.button5.Location = new System.Drawing.Point(12, 290);
             this.button5.Name = "button5";
             this.button5.Size = new System.Drawing.Size(75, 23);
-            this.button5.TabIndex = 5;
+            this.button5.TabIndex = 1;
             this.button5.Text = "Copy Line";
             this.button5.UseVisualStyleBackColor = true;
             this.button5.Click += new System.EventHandler(this.button5_Click);
@@ -123,16 +123,16 @@
             this.button6.Location = new System.Drawing.Point(255, 290);
             this.button6.Name = "button6";
             this.button6.Size = new System.Drawing.Size(75, 23);
-            this.button6.TabIndex = 6;
+            this.button6.TabIndex = 4;
             this.button6.Text = "Open URL";
             this.button6.UseVisualStyleBackColor = true;
             this.button6.Click += new System.EventHandler(this.button6_Click);
             // 
             // buttonExpand
             // 
-            this.buttonExpand.Location = new System.Drawing.Point(469, 12);
+            this.buttonExpand.Location = new System.Drawing.Point(448, 14);
             this.buttonExpand.Name = "buttonExpand";
-            this.buttonExpand.Size = new System.Drawing.Size(30, 25);
+            this.buttonExpand.Size = new System.Drawing.Size(28, 21);
             this.buttonExpand.TabIndex = 7;
             this.buttonExpand.Text = ">>";
             this.buttonExpand.UseVisualStyleBackColor = true;

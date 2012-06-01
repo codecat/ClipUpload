@@ -103,6 +103,7 @@ namespace Pastebin {
             if (!result.Contains("Bad API request, ")) {
                 this.AddLog(result);
                 Tray.ShowBalloonTip(1000, "Upload success!", "Text uploaded to Pastebin and URL copied to clipboard.", ToolTipIcon.Info);
+
                 return result;
             } else {
                 Tray.ShowBalloonTip(1000, "Upload failed!", "Something went wrong, probably on Pastebin's side. Try again.", ToolTipIcon.Error);

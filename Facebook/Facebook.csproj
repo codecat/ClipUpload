@@ -1,0 +1,131 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project ToolsVersion="4.0" DefaultTargets="Build" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <PropertyGroup>
+    <Configuration Condition=" '$(Configuration)' == '' ">Debug</Configuration>
+    <Platform Condition=" '$(Platform)' == '' ">AnyCPU</Platform>
+    <ProductVersion>8.0.30703</ProductVersion>
+    <DefineConstants>TRACE;SIMPLE_JSON_INTERNAL;SIMPLE_JSON_DYNAMIC;SIMPLE_JSON_DATACONTRACT;SIMPLE_JSON_REFLECTIONEMIT;FLUENTHTTP_URLENCODING;FLUENTHTTP_HTMLENCODING;TPL;FLUENTHTTP_CORE_TPL;</DefineConstants>
+    <SchemaVersion>2.0</SchemaVersion>
+    <ProjectGuid>{6D085CBF-3BD3-4400-97BA-67CC0281BE86}</ProjectGuid>
+    <OutputType>Library</OutputType>
+    <AppDesignerFolder>Properties</AppDesignerFolder>
+    <RootNamespace>Facebook</RootNamespace>
+    <AssemblyName>Facebook</AssemblyName>
+    <TargetFrameworkVersion>v4.0</TargetFrameworkVersion>
+    <FileAlignment>512</FileAlignment>
+  </PropertyGroup>
+  <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Debug|AnyCPU' ">
+    <DebugSymbols>true</DebugSymbols>
+    <DebugType>full</DebugType>
+    <Optimize>false</Optimize>
+    <OutputPath>..\ClipUpload3\bin\Debug\Addons\Facebook\</OutputPath>
+    <DefineConstants>DEBUG;TRACE;SIMPLE_JSON_INTERNAL;SIMPLE_JSON_DYNAMIC;SIMPLE_JSON_DATACONTRACT;SIMPLE_JSON_REFLECTIONEMIT;FLUENTHTTP_URLENCODING;FLUENTHTTP_HTMLENCODING;TPL;FLUENTHTTP_CORE_TPL;</DefineConstants>
+    <ErrorReport>prompt</ErrorReport>
+    <WarningLevel>4</WarningLevel>
+  </PropertyGroup>
+  <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Release|AnyCPU' ">
+    <DebugType>pdbonly</DebugType>
+    <Optimize>true</Optimize>
+    <OutputPath>bin\Release\</OutputPath>
+    <DefineConstants>TRACE;SIMPLE_JSON_INTERNAL;SIMPLE_JSON_DYNAMIC;SIMPLE_JSON_DATACONTRACT;SIMPLE_JSON_REFLECTIONEMIT;FLUENTHTTP_URLENCODING;FLUENTHTTP_HTMLENCODING;TPL;FLUENTHTTP_CORE_TPL;</DefineConstants>
+    <ErrorReport>prompt</ErrorReport>
+    <WarningLevel>4</WarningLevel>
+  </PropertyGroup>
+  <ItemGroup>
+    <Reference Include="System" />
+    <Reference Include="System.Core" />
+    <Reference Include="System.Drawing" />
+    <Reference Include="System.Runtime.Serialization" />
+    <Reference Include="System.Windows.Forms" />
+    <Reference Include="System.Xml.Linq" />
+    <Reference Include="System.Data.DataSetExtensions" />
+    <Reference Include="Microsoft.CSharp" />
+    <Reference Include="System.Data" />
+    <Reference Include="System.Xml" />
+  </ItemGroup>
+  <ItemGroup>
+    <Compile Include="Facebook.cs" />
+    <Compile Include="Facebook\CombinationStream.cs" />
+    <Compile Include="Facebook\DateTimeConvertor.cs" />
+    <Compile Include="Facebook\FacebookApiEventArgs.cs" />
+    <Compile Include="Facebook\FacebookApiException.cs" />
+    <Compile Include="Facebook\FacebookApiLimitException.cs">
+      <DependentUpon>FacebookApiException.cs</DependentUpon>
+    </Compile>
+    <Compile Include="Facebook\FacebookOAuthException.cs">
+      <DependentUpon>FacebookApiException.cs</DependentUpon>
+    </Compile>
+    <Compile Include="Facebook\FacebookBatchParameter.cs" />
+    <Compile Include="Facebook\FacebookClient.cs" />
+    <Compile Include="Facebook\FacebookClient.Async.cs">
+      <DependentUpon>FacebookClient.cs</DependentUpon>
+    </Compile>
+    <Compile Include="Facebook\FacebookClient.Async.Tasks.cs">
+      <DependentUpon>FacebookClient.cs</DependentUpon>
+    </Compile>
+    <Compile Include="Facebook\FacebookClient.Batch.Async.cs">
+      <DependentUpon>FacebookClient.cs</DependentUpon>
+    </Compile>
+    <Compile Include="Facebook\FacebookClient.Batch.Async.Tasks.cs">
+      <DependentUpon>FacebookClient.cs</DependentUpon>
+    </Compile>
+    <Compile Include="Facebook\FacebookClient.Batch.Sync.cs">
+      <DependentUpon>FacebookClient.cs</DependentUpon>
+    </Compile>
+    <Compile Include="Facebook\FacebookClient.OAuthResult.cs">
+      <DependentUpon>FacebookClient.cs</DependentUpon>
+    </Compile>
+    <Compile Include="Facebook\FacebookClient.SignedRequest.cs">
+      <DependentUpon>FacebookClient.cs</DependentUpon>
+    </Compile>
+    <Compile Include="Facebook\FacebookClient.Sync.cs">
+      <DependentUpon>FacebookClient.cs</DependentUpon>
+    </Compile>
+    <Compile Include="Facebook\FacebookMediaObject.cs" />
+    <Compile Include="Facebook\FacebookMediaStream.cs" />
+    <Compile Include="Facebook\FacebookOAuthResult.cs" />
+    <Compile Include="Facebook\FacebookUploadProgressChangedEventArgs.cs">
+      <DependentUpon>FacebookApiEventArgs.cs</DependentUpon>
+    </Compile>
+    <Compile Include="Facebook\GlobalSuppressions.cs" />
+    <Compile Include="Facebook\HttpHelper.cs" />
+    <Compile Include="Facebook\HttpMethod.cs" />
+    <Compile Include="Facebook\HttpWebRequestCreatedEventArgs.cs" />
+    <Compile Include="Facebook\SimpleJson.cs" />
+    <Compile Include="FormAuthenticate.cs">
+      <SubType>Form</SubType>
+    </Compile>
+    <Compile Include="FormAuthenticate.Designer.cs">
+      <DependentUpon>FormAuthenticate.cs</DependentUpon>
+    </Compile>
+    <Compile Include="FormSettings.cs">
+      <SubType>Form</SubType>
+    </Compile>
+    <Compile Include="FormSettings.Designer.cs">
+      <DependentUpon>FormSettings.cs</DependentUpon>
+    </Compile>
+    <Compile Include="Properties\AssemblyInfo.cs" />
+  </ItemGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\AddonHelper\AddonHelper.csproj">
+      <Project>{DB155373-2AC1-4988-99AB-312DF5F157F4}</Project>
+      <Name>AddonHelper</Name>
+    </ProjectReference>
+  </ItemGroup>
+  <ItemGroup>
+    <EmbeddedResource Include="FormAuthenticate.resx">
+      <DependentUpon>FormAuthenticate.cs</DependentUpon>
+    </EmbeddedResource>
+    <EmbeddedResource Include="FormSettings.resx">
+      <DependentUpon>FormSettings.cs</DependentUpon>
+    </EmbeddedResource>
+  </ItemGroup>
+  <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
+  <!-- To modify your build process, add your task inside one of the targets below and uncomment it. 
+       Other similar extension points exist, see Microsoft.Common.targets.
+  <Target Name="BeforeBuild">
+  </Target>
+  <Target Name="AfterBuild">
+  </Target>
+  -->
+</Project>

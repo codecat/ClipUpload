@@ -64,7 +64,7 @@ namespace Imgur {
             DragItem.Add("Visible", true);
             DragItem.Add("Text", "Drag -> Imgur");
             DragItem.Add("Image", this.bmpIcon);
-            DragItem.Add("Action", new Action(delegate { this.Drag(new Action<Image>(UploadImage)); }));
+            DragItem.Add("Action", new Action(delegate { this.Drag(new Action<DragCallback>(DragCallback)); }));
             DragItem.Add("ShortcutModifiers", this.shortCutDragModifiers);
             DragItem.Add("ShortcutKey", this.shortCutDragKey);
             ret.Add(DragItem);
@@ -85,6 +85,18 @@ namespace Imgur {
             new FormSettings(this).ShowDialog();
         }
 
+        public void DragCallback(DragCallback callback) {
+            switch (callback.Type) {
+                case DragCallbackType.Image:
+                    UploadImage(callback.Image);
+                    break;
+
+                case DragCallbackType.Animation:
+                    UploadAnimation(callback.Animation);
+                    break;
+            }
+        }
+
         public void UploadImage(Image img) {
             Icon defIcon = (Icon)Tray.Icon.Clone();
             Tray.Icon = new Icon("Addons/Imgur/Icon.ico");
@@ -99,15 +111,46 @@ namespace Imgur {
             }
 
             img.Save(ms, format);
+            img.Dispose();
 
             string url = this.UploadToImgur(ms);
+
+            if (url != "CANCELED" && url != "")
+                this.Backup(ms.GetBuffer(), url.Split('/', '\\').Last());
+            else
+                this.Backup(ms.GetBuffer(), this.RandomFilename(5) + "." + imageFormat.ToLower());
 
             if (url != "CANCELED") {
                 if (url != "") {
                     this.SetClipboardText(url);
                     Tray.ShowBalloonTip(1000, "Upload success!", "Image uploaded to Imgur and URL copied to clipboard.", ToolTipIcon.Info);
-                } else
+                } else {
+                    this.ProgressBar.Done();
                     Tray.ShowBalloonTip(1000, "Upload failed!", "Something went wrong, probably on Imgur's side. Try again.", ToolTipIcon.Error);
+                }
+            }
+
+            Tray.Icon = defIcon;
+        }
+
+        public void UploadAnimation(MemoryStream ms) {
+            Icon defIcon = (Icon)Tray.Icon.Clone();
+            Tray.Icon = new Icon("Addons/Imgur/Icon.ico");
+
+            string url = this.UploadToImgur(ms);
+            if (url != "CANCELED" && url != "")
+                this.Backup(ms.GetBuffer(), url.Split('/', '\\').Last());
+            else
+                this.Backup(ms.GetBuffer(), this.RandomFilename(5) + ".gif");
+
+            if (url != "CANCELED") {
+                if (url != "") {
+                    this.SetClipboardText(url);
+                    Tray.ShowBalloonTip(1000, "Upload success!", "Animation uploaded to Imgur and URL copied to clipboard.", ToolTipIcon.Info);
+                } else {
+                    this.ProgressBar.Done();
+                    Tray.ShowBalloonTip(1000, "Upload failed!", "Something went wrong, probably on Imgur's side. Try again.", ToolTipIcon.Error);
+                }
             }
 
             Tray.Icon = defIcon;
@@ -125,10 +168,7 @@ namespace Imgur {
                 if (!(file.EndsWith(".png") || file.EndsWith(".jpg") || file.EndsWith(".gif")))
                     continue;
 
-                MemoryStream ms = new MemoryStream();
-
-                Image img = Image.FromFile(file);
-                img.Save(ms, img.RawFormat);
+                MemoryStream ms = new MemoryStream(File.ReadAllBytes(file));
 
                 string url = this.UploadToImgur(ms);
                 if (url == "CANCELED") {
@@ -144,8 +184,10 @@ namespace Imgur {
                 if (finalCopy != "") {
                     this.SetClipboardText(finalCopy.Substring(0, finalCopy.Length - 1));
                     Tray.ShowBalloonTip(1000, "Upload success!", "Image(s) uploaded to Imgur and URL(s) copied to clipboard.", ToolTipIcon.Info);
-                } else
+                } else {
+                    this.ProgressBar.Done();
                     Tray.ShowBalloonTip(1000, "Upload failed!", "You didn't copy any images, or the image format is not supported.", ToolTipIcon.Error);
+                }
             }
 
             Tray.Icon = defIcon;
@@ -156,9 +198,10 @@ namespace Imgur {
 
             this.ProgressBar.Start("Imgur", writeData.Length);
 
+            HttpWebRequest req = null;
             string url = "";
             try {
-                HttpWebRequest req = (HttpWebRequest)HttpWebRequest.Create("http://" + "api.imgur.com/2/upload.xml");
+                req = (HttpWebRequest)HttpWebRequest.Create("http://" + "api.imgur.com/2/upload.xml");
                 req.Proxy = this.GetProxy();
                 req.Method = "POST";
                 req.ContentType = "application/x-www-form-urlencoded";
@@ -170,8 +213,8 @@ namespace Imgur {
                 ms.Dispose();
                 ms = new MemoryStream(writeData);
                 int sr = 1024;
-                for (int i = 0; i < ms.Length; i += 1024) {
-                    if (ms.Length - i < 1024)
+                for(int i = 0; i < ms.Length; i += 1024) {
+                    if(ms.Length - i < 1024)
                         sr = (int)ms.Length - i;
                     else
                         sr = 1024;
@@ -181,7 +224,7 @@ namespace Imgur {
                     ms.Read(buffer, 0, sr);
                     stream.Write(buffer, 0, sr);
 
-                    if (this.ProgressBar.Canceled) {
+                    if(this.ProgressBar.Canceled) {
                         req.Abort();
                         ms.Dispose();
 
@@ -197,7 +240,7 @@ namespace Imgur {
                 StreamReader reader = new StreamReader(response.GetResponseStream());
                 string result = reader.ReadToEnd();
 
-                if (!result.Contains("stat=\"fail\"")) {
+                if(!result.Contains("stat=\"fail\"")) {
                     url = GetBetween(result, "<original>", "</original>");
                     this.AddLog(url);
                 }

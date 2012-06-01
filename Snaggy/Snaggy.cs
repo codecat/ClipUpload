@@ -63,7 +63,7 @@ namespace Snaggy {
             DragItem.Add("Visible", true);
             DragItem.Add("Text", "Drag -> Snag.gy");
             DragItem.Add("Image", this.bmpIcon);
-            DragItem.Add("Action", new Action(delegate { this.Drag(new Action<Image>(DragUpload)); }));
+            DragItem.Add("Action", new Action(delegate { this.Drag(new Action<DragCallback>(DragCallback)); }));
             DragItem.Add("ShortcutModifiers", this.shortCutDragModifiers);
             DragItem.Add("ShortcutKey", this.shortCutDragKey);
             ret.Add(DragItem);
@@ -82,6 +82,18 @@ namespace Snaggy {
 
         public void Settings() {
             new FormSettings(this).ShowDialog();
+        }
+
+        public void DragCallback(DragCallback callback) {
+            switch (callback.Type) {
+                case DragCallbackType.Image:
+                    UploadImage(callback.Image);
+                    break;
+
+                case DragCallbackType.Animation:
+                    MessageBox.Show("Snaggy doesn't support gif animations.");
+                    break;
+            }
         }
 
         public string UploadImage(Image img) {

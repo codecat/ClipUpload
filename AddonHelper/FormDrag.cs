@@ -11,10 +11,12 @@ using System.Net;
 using System.Drawing.Drawing2D;
 using System.Drawing.Imaging;
 using System.Diagnostics;
+using System.Runtime.InteropServices;
 
 namespace AddonHelper {
     public partial class FormDrag : Form {
-        Settings settings;
+        public Addon addon;
+        public Settings settings;
 
         Rectangle[] Screens;
 
@@ -27,17 +29,18 @@ namespace AddonHelper {
         Image beginImage;
 
         Rectangle Selection;
+        int ScalePercentage = 100;
 
-        public Action<Image> DoneDragging = null;
+        public bool AnimationAllowed = true;
 
-        public FormDrag() {
+        public Action<DragCallback> DoneDragging = null;
+
+        public FormDrag(Addon addon) {
             InitializeComponent();
 
+            this.addon = addon;
+
             this.settings = new Settings("settings.txt");
-            if (this.settings.GetBool("DragExtra")) {
-                this.labelExtraInfo.Visible = true;
-                this.labelExtraInfo.Text = "P for " + this.settings.GetString("DragExtraName");
-            }
 
             this.Screens = new Rectangle[Screen.AllScreens.Length];
 
@@ -48,7 +51,7 @@ namespace AddonHelper {
             this.Height = this.Screens[0].Height;
 
             // This works because WinForms has an internal way of setting the maximum width/height of a Control (Form)
-            // Check it with Reflector, System.Windows.Forms.Control.Width (set)
+            // Check it with ILSpy, System.Windows.Forms.Control.Width (set)
             for (int i = 0; i < Screen.AllScreens.Length; i++) {
                 if (Screen.AllScreens[i].Bounds.Left < this.Left) {
                     this.Width += this.Left - Screen.AllScreens[i].Bounds.Left;
@@ -64,7 +67,7 @@ namespace AddonHelper {
             }
 
             this.Opacity = 0.5f;
-            this.TopMost = true;
+            //this.TopMost = true;
 
             this.beginImage = new Bitmap(this.Width, this.Height, System.Drawing.Imaging.PixelFormat.Format32bppRgb);
             Graphics beginGfx = Graphics.FromImage(this.beginImage);
@@ -72,34 +75,81 @@ namespace AddonHelper {
             beginGfx.Dispose();
         }
 
-        protected override bool ProcessCmdKey(ref Message msg, Keys keyData) {
-            if (keyData == Keys.Escape)
-                this.Close();
-            else if (keyData == Keys.P && this.labelExtraInfo.Visible) {
-                if (this.Selection.Width > 0 && this.Selection.Height > 0) {
-                    string exePath = this.settings.GetString("DragExtraPath");
-                    string localTempPath = Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData) + "\\Temp\\" + Addon.RandomString(16) + ".png";
+        private void FormDrag_Load(object sender, EventArgs e) {
+            this.SetStyle(ControlStyles.AllPaintingInWmPaint, true);
+            this.SetStyle(ControlStyles.OptimizedDoubleBuffer, true);
 
+            if (this.settings.GetInt("DragEditor") == 1)
+                this.labelExtraInfo.Text = "P for " + this.settings.GetString("DragExtraName") + "\n";
+            else
+                this.labelExtraInfo.Text = "P for built-in editor\n";
+
+            if (this.AnimationAllowed)
+                this.labelExtraInfo.Text += "O for animation\n";
+            this.labelExtraInfo.Text += "Scroll to scale";
+        }
+
+        protected override void WndProc(ref Message m) {
+            if (m.Msg == 0x20a) { // WM_VSCROLL
+                if (this.ScreenBox.Visible) {
+                    if (m.WParam.ToInt32() < 0) { // Scroll down
+                        this.ScalePercentage -= 4;
+                        if (this.ScalePercentage < 1)
+                            this.ScalePercentage = 1;
+                    } else { // Scroll up
+                        this.ScalePercentage += 4;
+                        if (this.ScalePercentage > 100)
+                            this.ScalePercentage = 100;
+                    }
+
+                    this.ScreenBox.Text = this.ScalePercentage + "%";
+                }
+            }
+
+            base.WndProc(ref m);
+        }
+
+        protected override bool ProcessCmdKey(ref Message msg, Keys keyData) {
+            if (keyData == Keys.Escape) {
+                this.Close();
+            } else if (keyData == Keys.P) {
+                if (this.Selection.Width > 0 && this.Selection.Height > 0) {
                     Bitmap img = null;
                     try {
                         img = this.SelectionImage;
                     } catch { }
 
                     if (img != null) {
-                        MemoryStream ms = new MemoryStream();
-                        img.Save(ms, ImageFormat.Png);
-                        File.WriteAllBytes(localTempPath, ms.GetBuffer());
+                        if (this.settings.GetInt("DragEditor") == 0) {
+                            new FormEditor(img, this.DoneDragging).Show();
+                        } else if (this.settings.GetInt("DragEditor") == 1) {
+                            string exePath = this.settings.GetString("DragExtraPath");
+
+                            if (File.Exists(exePath)) {
+                                string localTempPath = Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData) + "\\Temp\\" + Addon.RandomString(16) + ".png";
+
+                                MemoryStream ms = new MemoryStream();
+                                img.Save(ms, ImageFormat.Png);
+                                File.WriteAllBytes(localTempPath, ms.GetBuffer());
+
+                                Process.Start(exePath, "\"" + localTempPath + "\"");
+                            }
+                        }
+
+                        this.Close();
 
                         if (DoneDragging != null) {
                             //TODO: What do with this? Could return NULL as image, but then every addon must respond
                             //      accordingly to that. Can also not be triggered, but could break some addon code
-                            //      in the progress.
+                            //      in the progress. Same goes with doing a DragCallback with DragCallbackType.None,
+                            //      it could potentially break existing addon code. Decisions, decisions...
                         }
-
-                        if (File.Exists(exePath))
-                            Process.Start(exePath, "\"" + localTempPath + "\"");
-                        this.Close();
                     }
+                }
+            } else if (keyData == Keys.O) {
+                if (this.AnimationAllowed) {
+                    this.Close();
+                    new FormAnimation(this, this.Selection, this.DoneDragging).Show();
                 }
             }
 
@@ -174,11 +224,6 @@ namespace AddonHelper {
             }
         }
 
-        private void FormDrag_Load(object sender, EventArgs e) {
-            this.SetStyle(ControlStyles.AllPaintingInWmPaint, true);
-            this.SetStyle(ControlStyles.OptimizedDoubleBuffer, true);
-        }
-
         private void FormDrag_MouseDown(object sender, MouseEventArgs e) {
             if (e.Button == MouseButtons.Left) {
                 this.labelInstructions.Text = "Release to upload\nRight mouse button to cancel";
@@ -216,8 +261,18 @@ namespace AddonHelper {
 
         Bitmap SelectionImage {
             get {
-                Bitmap img = new Bitmap(this.Selection.Width, this.Selection.Height);
-                Graphics.FromImage(img).DrawImage(this.beginImage, new Rectangle(0, 0, img.Width, img.Height), this.Selection, GraphicsUnit.Pixel);
+                double scale = this.ScalePercentage / 100d;
+
+                int w = Math.Max(1, (int)(this.Selection.Width * scale));
+                int h = Math.Max(1, (int)(this.Selection.Height * scale));
+
+                Bitmap img = new Bitmap(w, h);
+                Graphics g = Graphics.FromImage(img);
+                g.CompositingQuality = CompositingQuality.HighQuality;
+                g.InterpolationMode = InterpolationMode.HighQualityBicubic;
+                g.SmoothingMode = SmoothingMode.HighQuality;
+                g.DrawImage(this.beginImage, new Rectangle(0, 0, img.Width, img.Height), this.Selection, GraphicsUnit.Pixel);
+                g.Dispose();
                 return img;
             }
         }
@@ -231,7 +286,7 @@ namespace AddonHelper {
                     Application.DoEvents();
 
                     if (DoneDragging != null)
-                        DoneDragging.Invoke(this.SelectionImage);
+                        DoneDragging.Invoke(new DragCallback() { Type = DragCallbackType.Image, Image = this.SelectionImage });
 
                     this.Close();
                 }
@@ -239,10 +294,14 @@ namespace AddonHelper {
         }
 
         private void FormDrag_MouseMove(object sender, MouseEventArgs e) {
-            if (e.Button == MouseButtons.Left) {
-                int X = e.X;
-                int Y = e.Y;
+            int X = e.X;
+            int Y = e.Y;
 
+            bool labelsVisible = !(X < 200 && Y < 150);
+            labelInstructions.Visible = labelsVisible;
+            labelExtraInfo.Visible = labelsVisible;
+
+            if (e.Button == MouseButtons.Left) {
                 if (sender.GetType() == typeof(Label)) {
                     X += this.ScreenBox.Left;
                     Y += this.ScreenBox.Top;
@@ -256,6 +315,11 @@ namespace AddonHelper {
         private void timerSet_Tick(object sender, EventArgs e) {
             this.Selection = GetInvertedRectangle(this.StartX, this.StartY, this.NowX - this.StartX, this.NowY - this.StartY);
             this.SetArea();
+        }
+
+        private void FormDrag_FormClosing(object sender, FormClosingEventArgs e) {
+            this.beginImage.Dispose();
+            this.Dispose();
         }
     }
 }

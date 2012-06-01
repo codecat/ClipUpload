@@ -42,10 +42,13 @@
             // ScreenBox
             // 
             this.ScreenBox.BackColor = System.Drawing.Color.Green;
+            this.ScreenBox.Font = new System.Drawing.Font("Segoe UI", 11.25F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
+            this.ScreenBox.ForeColor = System.Drawing.Color.White;
             this.ScreenBox.Location = new System.Drawing.Point(200, 143);
             this.ScreenBox.Name = "ScreenBox";
             this.ScreenBox.Size = new System.Drawing.Size(165, 117);
             this.ScreenBox.TabIndex = 2;
+            this.ScreenBox.Text = "100%";
             this.ScreenBox.Visible = false;
             this.ScreenBox.MouseDown += new System.Windows.Forms.MouseEventHandler(this.FormDrag_MouseDown);
             this.ScreenBox.MouseMove += new System.Windows.Forms.MouseEventHandler(this.FormDrag_MouseMove);
@@ -97,7 +100,6 @@
             this.labelExtraInfo.Size = new System.Drawing.Size(72, 17);
             this.labelExtraInfo.TabIndex = 4;
             this.labelExtraInfo.Text = "P for Paint";
-            this.labelExtraInfo.Visible = false;
             // 
             // FormDrag
             // 
@@ -106,11 +108,11 @@
             this.BackColor = System.Drawing.Color.Black;
             this.ClientSize = new System.Drawing.Size(593, 393);
             this.ControlBox = false;
-            this.Controls.Add(this.labelExtraInfo);
-            this.Controls.Add(this.labelInstructions);
             this.Controls.Add(this.picWidth);
             this.Controls.Add(this.picHeight);
             this.Controls.Add(this.ScreenBox);
+            this.Controls.Add(this.labelExtraInfo);
+            this.Controls.Add(this.labelInstructions);
             this.FormBorderStyle = System.Windows.Forms.FormBorderStyle.None;
             this.MaximizeBox = false;
             this.MinimizeBox = false;
@@ -119,6 +121,7 @@
             this.ShowInTaskbar = false;
             this.StartPosition = System.Windows.Forms.FormStartPosition.Manual;
             this.Text = "Drag";
+            this.FormClosing += new System.Windows.Forms.FormClosingEventHandler(this.FormDrag_FormClosing);
             this.Load += new System.EventHandler(this.FormDrag_Load);
             this.MouseDown += new System.Windows.Forms.MouseEventHandler(this.FormDrag_MouseDown);
             this.MouseMove += new System.Windows.Forms.MouseEventHandler(this.FormDrag_MouseMove);

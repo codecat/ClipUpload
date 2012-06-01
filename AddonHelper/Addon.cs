@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Linq;
 using System.Collections.Generic;
 using System.Drawing;
 using System.Windows.Forms;
@@ -8,10 +9,68 @@ using System.Text;
 using System.Diagnostics;
 using System.Net;
 using System.Runtime.InteropServices;
+using System.Threading;
 
 namespace AddonHelper {
+    public enum DragCallbackType { Image, Animation, None }
+    public class DragCallback {
+        public DragCallbackType Type;
+
+        public Image Image;
+        public MemoryStream Animation;
+    }
+
     public class Addon {
         public static Random rnd = new Random();
+        private Settings appSettings = new Settings("settings.txt");
+
+        public long Epoch() {
+            return (DateTime.Now.ToUniversalTime().Ticks - 621355968000000000) / 10000000;
+        }
+
+        private string formatFilename(string origFilename) {
+            string fnm = appSettings.GetString("BackupsFormat");
+            fnm = fnm.Replace("%ADDON%", this.GetType().Name);
+            fnm = fnm.Replace("%DATE%", DateTime.Now.ToString("d").Replace('/', '-'));
+            fnm = fnm.Replace("%TIME%", DateTime.Now.ToString("t").Replace(':', '.'));
+            fnm = fnm.Replace("%EPOCH%", Epoch().ToString());
+            fnm = fnm.Replace("%EPOCHX%", Epoch().ToString("x8"));
+            fnm = fnm.Replace("%FILENAME%", origFilename);
+
+            char[] invalidChars = Path.GetInvalidFileNameChars();
+            foreach (char c in invalidChars) {
+                fnm = fnm.Replace(c.ToString(), "");
+            }
+
+            return fnm;
+        }
+
+        public void Backup(string sourceFile) {
+            if (appSettings.GetBool("BackupsEnabled")) {
+                string path = appSettings.GetString("BackupsPath");
+
+                if (!Directory.Exists(path)) {
+                    Directory.CreateDirectory(path);
+                }
+
+                string filename = Path.GetFileName(sourceFile);
+                string fnm = formatFilename(filename);
+                File.Copy(sourceFile, path + "/" + fnm);
+            }
+        }
+
+        public void Backup(byte[] buffer, string filename) {
+            if (appSettings.GetBool("BackupsEnabled")) {
+                string path = appSettings.GetString("BackupsPath");
+
+                if (!Directory.Exists(path)) {
+                    Directory.CreateDirectory(path);
+                }
+
+                string fnm = formatFilename(filename);
+                File.WriteAllBytes(path + "/" + fnm, buffer);
+            }
+        }
 
         public void AddLog(string URL) {
             StreamWriter writer;
@@ -25,8 +84,8 @@ namespace AddonHelper {
             writer.Dispose();
         }
 
-        public void Drag(Action<Image> doneDragging) {
-            FormDrag formDrag = new FormDrag();
+        public void Drag(Action<DragCallback> doneDragging) {
+            FormDrag formDrag = new FormDrag(this);
             formDrag.DoneDragging = doneDragging;
             formDrag.ShowDialog();
         }
@@ -94,16 +153,14 @@ namespace AddonHelper {
         }
 
         public WebProxy GetProxy() {
-            Settings settings = new Settings("settings.txt");
-
-            if (settings.GetBool("ProxyEnabled")) {
-                string hostName = settings.GetString("ProxyHost");
-                int hostPort = settings.GetInt("ProxyPort");
+            if (appSettings.GetBool("ProxyEnabled")) {
+                string hostName = appSettings.GetString("ProxyHost");
+                int hostPort = appSettings.GetInt("ProxyPort");
 
                 WebProxy ret = new WebProxy(hostName, hostPort);
 
-                string credentialsUsername = settings.GetString("ProxyUsername");
-                string credentialsPassword = settings.GetString("ProxyPassword");
+                string credentialsUsername = appSettings.GetString("ProxyUsername");
+                string credentialsPassword = appSettings.GetString("ProxyPassword");
 
                 if (credentialsUsername != "" || credentialsPassword != "") {
                     ret.Credentials = new NetworkCredential(credentialsUsername, credentialsPassword);
@@ -137,26 +194,37 @@ namespace AddonHelper {
             private string filename = "";
             private int filesize = 0;
             private int lastLocation = 0;
+            private bool showSpeed = true;
             private Stopwatch speedTimer = new Stopwatch();
 
             private bool done = false;
             public bool Canceled = false;
 
-            public void Start(string Filename, long Filesize) {
-                this.reset();
+            private Settings appSettings = new Settings("settings.txt");
 
-                Settings settings = new Settings("settings.txt");
-                if (!settings.GetBool("ProgressBar")) {
+            public void Start(string Filename, long Filesize) {
+                this.Start(Filename, Filesize, true);
+            }
+
+            public void Start(string Filename, long Filesize, bool DisplaySpeed) {
+                this.reset();
+                if (Filesize == 0) return;
+
+                if (!appSettings.GetBool("ProgressBar")) {
                     return;
                 }
 
-                this.Form = new FormProgressBar(settings);
+                this.Form = new FormProgressBar(appSettings);
                 this.Form.FormClosing += new FormClosingEventHandler(cancelUpload);
-                this.Form.Show();
 
-                this.filename = Filename;
-                this.filesize = (int)Filesize; //TODO: Handle Filesize > int.MaxValue
-                this.updateStatus(0);
+                new Thread(new ThreadStart(delegate {
+                    this.filename = Filename;
+                    this.filesize = (int)Filesize; //TODO: Handle Filesize > int.MaxValue
+                    this.showSpeed = DisplaySpeed;
+                    this.updateStatus(0);
+
+                    Application.Run(this.Form);
+                })).Start();
             }
 
             private void reset() {
@@ -181,12 +249,8 @@ namespace AddonHelper {
                 }
             }
 
-            private void doEvents() {
-                Application.DoEvents();
-            }
-
             private double percentage(int currentLocation) {
-                return 100d / (double)this.filesize * (double)currentLocation;
+                return Math.Min(100d, 100d / (double)this.filesize * (double)currentLocation);
             }
 
             private double percentage(int currentLocation, int decimals) {
@@ -194,37 +258,49 @@ namespace AddonHelper {
             }
 
             private void updateStatus(int currentLocation) {
-                int bytesTransfered = currentLocation - this.lastLocation;
-                double bytesPerSecond = Math.Round(this.percentage(currentLocation) / 100d * (double)this.filesize) / ((double)this.speedTimer.ElapsedMilliseconds / 1000d);
-                double uploadRateBps = Math.Round(bytesPerSecond, 2);
-                double uploadRateKBps = Math.Round(uploadRateBps / 1024, 2);
-                double uploadRateMBps = Math.Round(uploadRateKBps / 1024, 2);
                 this.lastLocation = currentLocation;
 
-                string uploadRate = uploadRateBps + " B/s";
-                if (uploadRateBps > 1024) {
-                    uploadRate = uploadRateKBps + " KB/s";
-                }
-                if (uploadRateKBps > 1024) {
-                    uploadRate = uploadRateMBps + " MB/s";
-                }
-                this.Form.Text = this.filename + " - " + this.percentage(currentLocation, 0) + "% - " + uploadRate;
+                string uploadRate = "";
+                if (this.showSpeed) {
+                    int bytesTransfered = currentLocation - this.lastLocation;
+                    double bytesPerSecond = Math.Round(this.percentage(currentLocation) / 100d * (double)this.filesize) / ((double)this.speedTimer.ElapsedMilliseconds / 1000d);
+                    double uploadRateBps = Math.Round(bytesPerSecond, 2);
+                    double uploadRateKBps = Math.Round(uploadRateBps / 1024, 2);
+                    double uploadRateMBps = Math.Round(uploadRateKBps / 1024, 2);
 
-                this.Form.progressBar.Value = 100; // First set it to 100 to bypass the Aero animation
-                this.Form.progressBar.Value = (int)this.percentage(currentLocation);
+                    uploadRate = uploadRateBps + " B/s";
+                    if (uploadRateBps > 1024)
+                        uploadRate = uploadRateKBps + " KB/s";
+                    if (uploadRateKBps > 1024)
+                        uploadRate = uploadRateMBps + " MB/s";
+                }
+
+
+                this.Form.Text = this.filename + " - " + this.percentage(currentLocation, 0) + "%" + (this.showSpeed ? " - " + uploadRate : "");
+
+                int percVal = (int)this.percentage(currentLocation);
+                this.Form.progressBar.Value = percVal + 1; // First set it to it's value + 1 to bypass the Aero animation
+                this.Form.progressBar.Value = percVal;
             }
 
             public void Set(int currentLocation) {
                 if (!Canceled && this.Form != null) {
-                    this.updateStatus(currentLocation);
-                    this.doEvents();
+                    try {
+                        this.Form.Invoke(new Action(delegate {
+                            this.updateStatus(currentLocation);
+                        }));
+                    } catch { }
                 }
             }
 
             public void Done() {
                 if (!Canceled && this.Form != null) {
                     this.done = true;
-                    this.Form.Close();
+                    try {
+                        this.Form.Invoke(new Action(delegate {
+                            this.Form.Close();
+                        }));
+                    } catch { }
                 }
             }
         }

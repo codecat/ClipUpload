@@ -16,7 +16,6 @@ namespace Dropbox {
         public Settings settings;
 
         public NotifyIcon Tray;
-        public Random rnd = new Random();
 
         public bool DropboxInstalled = false;
 
@@ -81,7 +80,7 @@ namespace Dropbox {
                 DragItem.Add("Visible", true);
                 DragItem.Add("Text", "Drag -> Dropbox");
                 DragItem.Add("Image", this.bmpIcon);
-                DragItem.Add("Action", new Action(delegate { this.Drag(new Action<Image>(UploadImage)); }));
+                DragItem.Add("Action", new Action(delegate { this.Drag(new Action<DragCallback>(DragCallback)); }));
                 DragItem.Add("ShortcutModifiers", this.shortCutDragModifiers);
                 DragItem.Add("ShortcutKey", this.shortCutDragKey);
                 ret.Add(DragItem);
@@ -101,6 +100,18 @@ namespace Dropbox {
 
         public void Settings() {
             new FormSettings(this).ShowDialog();
+        }
+
+        public void DragCallback(DragCallback callback) {
+            switch (callback.Type) {
+                case DragCallbackType.Image:
+                    UploadImage(callback.Image);
+                    break;
+
+                case DragCallbackType.Animation:
+                    UploadAnimation(callback.Animation);
+                    break;
+            }
         }
 
         public void UploadImage(Image img) {
@@ -130,6 +141,9 @@ namespace Dropbox {
                 filename += "." + imageFormat.ToLower();
 
                 img.Save(dbPath + "/" + filename, format);
+                img.Dispose();
+
+                this.Backup(dbPath + "/" + filename);
 
                 result = true;
             } catch (Exception ex) { failReason = ex.Message; }
@@ -139,6 +153,46 @@ namespace Dropbox {
                 this.AddLog(url);
                 Clipboard.SetText(url);
                 Tray.ShowBalloonTip(1000, "Save success!", "Image uploaded to Dropbox and URL copied to clipboard.", ToolTipIcon.Info);
+            } else
+                Tray.ShowBalloonTip(1000, "Save failed!", "Something went wrong, it has to be something in your settings. Try again.\nMessage: '" + failReason + "'", ToolTipIcon.Error);
+
+            Tray.Icon = defIcon;
+        }
+
+        public void UploadAnimation(MemoryStream ms) {
+            Icon defIcon = (Icon)Tray.Icon.Clone();
+            Tray.Icon = new Icon("Addons/Dropbox/Icon.ico");
+
+            bool result = false;
+            string failReason = "";
+            string filename = "";
+
+            try {
+                filename = this.RandomFilename(this.settings.GetInt("Length")).ToLower();
+                if (this.useMD5) {
+                    filename = MD5(filename + rnd.Next(1000, 9999).ToString());
+
+                    if (this.shortMD5)
+                        filename = filename.Substring(0, this.length);
+                }
+
+                filename += ".gif";
+
+                FileStream fs = File.OpenWrite(dbPath + "/" + filename);
+                fs.Write(ms.GetBuffer(), 0, (int)ms.Length);
+                fs.Close();
+                fs.Dispose();
+                
+                this.Backup(dbPath + "/" + filename);
+
+                result = true;
+            } catch (Exception ex) { failReason = ex.Message; }
+
+            if (result) {
+                string url = dbHttp + filename;
+                this.AddLog(url);
+                Clipboard.SetText(url);
+                Tray.ShowBalloonTip(1000, "Save success!", "Animation uploaded to Dropbox and URL copied to clipboard.", ToolTipIcon.Info);
             } else
                 Tray.ShowBalloonTip(1000, "Save failed!", "Something went wrong, it has to be something in your settings. Try again.\nMessage: '" + failReason + "'", ToolTipIcon.Error);
 
@@ -166,6 +220,8 @@ namespace Dropbox {
 
                 File.WriteAllText(dbPath + "/" + filename, Text);
 
+                this.Backup(dbPath + "/" + filename);
+
                 result = true;
             } catch (Exception ex) { failReason = ex.Message; }
 
@@ -192,7 +248,7 @@ namespace Dropbox {
                 foreach (string file in files) {
                     string filename = file.Split('/', '\\').Last();
 
-                    File.Copy(file, dbPath + filename);
+                    File.Copy(file, dbPath + "/" + filename);
                     string url = dbHttp + Uri.EscapeDataString(filename);
                     this.AddLog(url);
                     finalCopy += url + "\n";

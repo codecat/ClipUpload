@@ -4,3 +4,6 @@
 
 # mstest test results
 TestResults
+
+# suo files
+(.+).suo

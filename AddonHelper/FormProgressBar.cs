@@ -13,17 +13,24 @@ namespace AddonHelper {
         [DllImport("dwmapi.dll", PreserveSig = false)]
         public static extern bool DwmIsCompositionEnabled();
 
-        protected override bool ShowWithoutActivation {
-            get { return true; }
-        }
-
         public bool DwmEnabled {
             get {
-                if (Environment.OSVersion.Version.Major >= 6) {
+                if (Environment.OSVersion.Version.Major >= 6)
                     return DwmIsCompositionEnabled();
-                } else {
+                else
                     return false;
-                }
+            }
+        }
+
+        protected override bool ShowWithoutActivation {
+            get { return true; } // Since this form is TopMost, we need the below shown CreateParams override as well
+        }
+
+        protected override CreateParams CreateParams {
+            get {
+                CreateParams p = base.CreateParams;
+                p.ExStyle |= 8; // WS_EX_TOPMOST
+                return p;
             }
         }
 
