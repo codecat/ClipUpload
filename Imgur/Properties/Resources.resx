@@ -117,44 +117,4 @@
   <resheader name="writer">
     <value>System.Resources.ResXResourceWriter, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
   </resheader>
-  <assembly alias="System.Drawing" name="System.Drawing, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a" />
-  <data name="picPro.Image" type="System.Drawing.Bitmap, System.Drawing" mimetype="application/x-microsoft.net.object.bytearray.base64">
-    <value>
-        iVBORw0KGgoAAAANSUhEUgAAABAAAAAQCAYAAAAf8/9hAAAAAXNSR0IArs4c6QAAAARnQU1BAACxjwv8
-        YQUAAAAZdEVYdFNvZnR3YXJlAEFkb2JlIEltYWdlUmVhZHlxyWU8AAAB5klEQVQ4T52R30tTYRzGh6CR
-        F/0P3gi7EcWt6Qq9CLuQbsQRGYyZMGx50XUXoV64K28GIbllrgW7KIhEL7yTwUaCRYdiqxa4/IU7Z7Mo
-        zzxn5zif3u+7t0PrMC964GHP+32f74dzzhwAHM2kxL2TzBFxtInvngeovAnV1HSwaeFcgLzUO2vurYBM
-        WYwb1BSgxPvaS8nrgLHFTVlcNagp4PCJK1GRFlArhrkpy0uuZ+LakgUoJa4klGWPxB4VcqwbcvwqzOIr
-        mNuhulmmmRzrIRCU5T6JdiyAHO9X9fwiYL7Fmb6JM+MrTnemYeQnuSnTjO6gp6BlZxjQq1oApu79mFtR
-        M6Mwvkyg+mkc1Rz9BuvmeZzBJqBmfDiIXVZo528AqUua71lT0z6Y38LQswHmO8IBmDthHKdGQB3q0sK/
-        AMeF1paOXxu32F/3CNoHP3NA2A9jN4Kf6z5QR9TtAOWpZ0zLPmTvOIUT6baA+HnWc1OovHtAH3BM1O2A
-        QtQTrRbmcPL+JtT0CMrJQW7KNNPz09hecEVF3Q4or40WtY9B/FgdQuGx5/PFthY3mTLNtNx9lF4OF0Xd
-        Dvj++gZKz721xbud99jRWZ9yOWlWTg7Ujl5csxZsAKZe4Uv81Cia/bnnsgD/bzh+A5id2EroYJ8kAAAA
-        AElFTkSuQmCC
-</value>
-  </data>
-  <data name="$this.Icon" type="System.Drawing.Icon, System.Drawing" mimetype="application/x-microsoft.net.object.bytearray.base64">
-    <value>
-        AAABAAEAEBAAAAEAIABoBAAAFgAAACgAAAAQAAAAIAAAAAEAIAAAAAAAQAQAAAAAAAAAAAAAAAAAAAAA
-        AAAREhIAERISlBESEv8REhL/ERIS/xESEv8REhL/ERIS/xESEv8REhL/ERIS/xESEv8REhL/ERIS/xES
-        EpQREhIAERISlBESEv8REhL/ERIS/xESEv8REhL/gIGB////////////gIGB/xESEv8REhL/ERIS/xES
-        Ev8REhL/ERISlBESEv8REhL/ERIS/xESEv8REhL/ERIS//////////////////////8REhL/ERIS/xES
-        Ev8REhL/ERIS/xESEuwREhL/ERIS/xESEv8REhL/ERIS/xESEv//////////////////////ERIS/xES
-        Ev8REhL/ERIS/xESEv8REhL/ERIS/xESEv8REhL/ERIS/xESEv8REhL//////////////////////xES
-        Ev8REhL/ERIS/xESEv8REhL/ERIS/xESEv8REhL/ERIS/xESEv8REhL/ERIS////////////////////
-        //8REhL/ERIS/xESEv8REhL/ERIS/xESEv8REhL/ERIS/xESEv8REhL/ERIS/xESEv//////////////
-        ////////ERIS/xESEv8REhL/ERIS/xESEv8REhL/ERIS/xESEv8REhL/ERIS/xESEv8REhL/////////
-        /////////////xESEv8REhL/ERIS/xESEv8REhL/ERIS/xESEv8REhL/ERIS/xESEv8REhL/ERIS////
-        //////////////////8REhL/ERIS/xESEv8REhL/ERIS/xESEv8REhL/ERIS/xESEv8REhL/ERIS/xES
-        Ev+AgYH///////////+AgYH/ERIS/xESEv8REhL/ERIS/xESEv8REhL/ERIS/xESEv8REhL/ERIS/xES
-        Ev8REhL/ERIS/xESEv8REhL/ERIS/xESEv8REhL/ERIS/xESEv8REhL/ERIS/xESEv8REhL/ERIS/xES
-        Ev8REhL/ERIS/xtsTv8kxon/JMqM/xtsTv8REhL/ERIS/xESEv8REhL/ERIS/xESEv8REhL/ERIS/xES
-        Ev8REhL/ERIS/xESEv8kxon/JMaJ/yTGif8kxon/ERIS/xESEv8REhL/ERIS/xESEv8REhL/ERIS/xES
-        Ev8REhL/ERIS/xESEv8REhL/G2xO/yTGif8kxon/G2xO/xESEv8REhL/ERIS/xESEv8REhL/ERIS7BES
-        EpQREhL/ERIS/xESEv8REhL/ERIS/xESEv8REhL/ERIS/xESEv8REhL/ERIS/xESEv8REhL/ERIS/xES
-        EpQREhIAERISlBESEv8REhL/ERIS/xESEv8REhL/ERIS/xESEv8REhL/ERIS/xESEv8REhL/ERIS/xES
-        EpQREhIAgAEAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA
-        AAAAAAAAgAEAAA==
-</value>
-  </data>
 </root>

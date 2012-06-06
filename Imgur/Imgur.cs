@@ -10,6 +10,8 @@ using System.IO;
 using System.Collections;
 using System.Collections.Specialized;
 using AddonHelper;
+using System.Diagnostics;
+using MrAG.OAuth;
 
 namespace Imgur {
     public class Imgur : Addon {
@@ -17,6 +19,12 @@ namespace Imgur {
 
         public NotifyIcon Tray;
         public string imgurApiKey = "1caece560704b3ee19d7b112e63ea2ac";
+        public string imgurConsumerKey = "0d3b44ffdecba1c44057fbb8b78f2c4204fcb7c1f";
+        public string imgurConsumerSecret = "62842910a06d90f793d773657bfae555";
+
+        public bool authenticated;
+        public bool isPro;
+        public string username;
 
         public string imageFormat = "PNG";
 
@@ -26,6 +34,8 @@ namespace Imgur {
         public string shortCutPasteKey = "";
 
         private Bitmap bmpIcon;
+
+        public OAuth oauth;
 
         public void Initialize(NotifyIcon Tray) {
             this.Tray = Tray;
@@ -49,12 +59,32 @@ namespace Imgur {
                 settings.Save();
             }
 
+            if (!settings.Contains("AccessToken")) {
+                // Migrate old 3.10 config file
+                settings.SetString("Username", "");
+                settings.SetBool("IsPro", false);
+                settings.SetString("AccessToken", "");
+                settings.SetString("AccessTokenSecret", "");
+
+                settings.Save();
+            }
+
             imageFormat = settings.GetString("Format");
 
             shortCutDragModifiers = settings.GetString("ShortcutDragModifiers");
             shortCutDragKey = settings.GetString("ShortcutDragKey");
             shortCutPasteModifiers = settings.GetString("ShortcutPasteModifiers");
             shortCutPasteKey = settings.GetString("ShortcutPasteKey");
+
+            this.oauth = new OAuth("https://" + "api.imgur.com/oauth/", this.imgurConsumerKey, this.imgurConsumerSecret);
+            this.oauth.ServiceIcon = new Icon("Addons/Imgur/Icon.ico");
+            this.oauth.ServiceName = "Imgur";
+
+            this.username = settings.GetString("Username");
+            this.isPro = settings.GetBool("IsPro");
+            this.oauth.AccessToken = settings.GetString("AccessToken");
+            this.oauth.AccessTokenSecret = settings.GetString("AccessTokenSecret");
+            authenticated = username != "" && this.oauth.AccessToken != "";
         }
 
         public Hashtable[] Menu() {
@@ -62,7 +92,7 @@ namespace Imgur {
 
             Hashtable DragItem = new Hashtable();
             DragItem.Add("Visible", true);
-            DragItem.Add("Text", "Drag -> Imgur");
+            DragItem.Add("Text", "Drag -> Imgur" + (this.authenticated ? " (" + this.username + ")" : ""));
             DragItem.Add("Image", this.bmpIcon);
             DragItem.Add("Action", new Action(delegate { this.Drag(new Action<DragCallback>(DragCallback)); }));
             DragItem.Add("ShortcutModifiers", this.shortCutDragModifiers);
@@ -71,7 +101,7 @@ namespace Imgur {
 
             Hashtable UpItem = new Hashtable();
             UpItem.Add("Visible", Clipboard.ContainsImage() || Clipboard.ContainsFileDropList());
-            UpItem.Add("Text", "Imgur");
+            UpItem.Add("Text", "Imgur" + (this.authenticated ? " (" + this.username + ")" : ""));
             UpItem.Add("Image", this.bmpIcon);
             UpItem.Add("Action", new Action(Upload));
             UpItem.Add("ShortcutModifiers", this.shortCutPasteModifiers);
@@ -194,14 +224,21 @@ namespace Imgur {
         }
 
         public string UploadToImgur(MemoryStream ms) {
-            byte[] writeData = Encoding.ASCII.GetBytes("key=" + imgurApiKey + "&image=" + LongDataEscape(Convert.ToBase64String(ms.ToArray())));
+            byte[] writeData;
+            if (this.authenticated)
+                writeData = Encoding.ASCII.GetBytes("image=" + LongDataEscape(Convert.ToBase64String(ms.ToArray())));
+            else
+                writeData = Encoding.ASCII.GetBytes("key=" + imgurApiKey + "&image=" + LongDataEscape(Convert.ToBase64String(ms.ToArray())));
 
             this.ProgressBar.Start("Imgur", writeData.Length);
 
             HttpWebRequest req = null;
             string url = "";
             try {
-                req = (HttpWebRequest)HttpWebRequest.Create("http://" + "api.imgur.com/2/upload.xml");
+                if (this.authenticated)
+                    req = this.oauth.AuthenticatedWebRequest("https://" + "api.imgur.com/2/upload.xml");
+                else
+                    req = (HttpWebRequest)HttpWebRequest.Create("https://" + "api.imgur.com/2/upload.xml");
                 req.Proxy = this.GetProxy();
                 req.Method = "POST";
                 req.ContentType = "application/x-www-form-urlencoded";
@@ -213,8 +250,8 @@ namespace Imgur {
                 ms.Dispose();
                 ms = new MemoryStream(writeData);
                 int sr = 1024;
-                for(int i = 0; i < ms.Length; i += 1024) {
-                    if(ms.Length - i < 1024)
+                for (int i = 0; i < ms.Length; i += 1024) {
+                    if (ms.Length - i < 1024)
                         sr = (int)ms.Length - i;
                     else
                         sr = 1024;
@@ -224,7 +261,7 @@ namespace Imgur {
                     ms.Read(buffer, 0, sr);
                     stream.Write(buffer, 0, sr);
 
-                    if(this.ProgressBar.Canceled) {
+                    if (this.ProgressBar.Canceled) {
                         req.Abort();
                         ms.Dispose();
 
@@ -240,11 +277,13 @@ namespace Imgur {
                 StreamReader reader = new StreamReader(response.GetResponseStream());
                 string result = reader.ReadToEnd();
 
-                if(!result.Contains("stat=\"fail\"")) {
+                if (!result.Contains("stat=\"fail\"")) {
                     url = GetBetween(result, "<original>", "</original>");
                     this.AddLog(url);
                 }
-            } catch { }
+            } catch (Exception ex) {
+                this.Debug("UploadToImgur threw " + ex.GetType().FullName + ": '" + ex.Message + "'");
+            }
 
             this.ProgressBar.Done();
 

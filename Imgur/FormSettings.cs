@@ -6,6 +6,9 @@ using System.Drawing;
 using System.Linq;
 using System.Text;
 using System.Windows.Forms;
+using MrAG.OAuth;
+using System.Xml;
+using System.IO;
 
 namespace Imgur {
     public partial class FormSettings : Form {
@@ -51,6 +54,8 @@ namespace Imgur {
 
             comboDragKeys.SelectedItem = mainClass.shortCutDragKey;
             comboPasteKeys.SelectedItem = mainClass.shortCutPasteKey;
+
+            AuthedMessage();
         }
 
         private void button1_Click(object sender, EventArgs e) {
@@ -78,15 +83,70 @@ namespace Imgur {
                 mainClass.settings.SetString("ShortcutPasteKey", (string)comboPasteKeys.SelectedItem != "None" ? (string)comboPasteKeys.SelectedItem : "");
             }
 
+            mainClass.settings.SetString("Username", this.mainClass.username);
+            mainClass.settings.SetBool("IsPro", this.mainClass.isPro);
+            mainClass.settings.SetString("AccessToken", this.mainClass.oauth.AccessToken);
+            mainClass.settings.SetString("AccessTokenSecret", this.mainClass.oauth.AccessTokenSecret);
+
             mainClass.settings.Save();
 
             mainClass.LoadSettings();
-
             this.Close();
         }
 
         private void button2_Click(object sender, EventArgs e) {
+            mainClass.LoadSettings();
             this.Close();
+        }
+
+        public void AuthedMessage() {
+            if (this.mainClass.authenticated) {
+                this.labelAuthed.Text = "Logged in as " + this.mainClass.username;
+                this.buttonAuthenticate.Text = "Deauthenticate";
+            } else
+                this.labelAuthed.Text = "Not authenticated";
+            this.labelPro.Visible = this.picPro.Visible = this.mainClass.isPro;
+        }
+
+        private void buttonAuthenticate_Click(object sender, EventArgs e) {
+            if (this.buttonAuthenticate.Text == "Authenticate") {
+                this.mainClass.oauth.Authorize();
+
+                if (this.mainClass.oauth.AccessToken != "") {
+                    this.mainClass.authenticated = true;
+
+                    string result = this.mainClass.oauth.AuthenticatedWebClient().DownloadString("https://" + "api.imgur.com/2/account");
+                    XmlReader resultReader = XmlReader.Create(new MemoryStream(Encoding.UTF8.GetBytes(result)));
+
+                    while (resultReader.Read()) {
+                        switch (resultReader.NodeType) {
+                            case XmlNodeType.Element:
+                                switch (resultReader.Name) {
+                                    case "url":
+                                        resultReader.Read();
+                                        this.mainClass.username = resultReader.Value;
+                                        break;
+
+                                    case "is_pro":
+                                        resultReader.Read();
+                                        this.mainClass.isPro = bool.Parse(resultReader.Value);
+                                        break;
+                                }
+                                break;
+                        }
+                    }
+                }
+            } else {
+                this.mainClass.authenticated = false;
+                this.mainClass.username = "";
+                this.mainClass.isPro = false;
+                this.mainClass.oauth.AccessToken = "";
+                this.mainClass.oauth.AccessTokenSecret = "";
+
+                this.buttonAuthenticate.Text = "Authenticate";
+            }
+
+            AuthedMessage();
         }
     }
 }
