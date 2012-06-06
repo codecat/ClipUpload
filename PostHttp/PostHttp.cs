@@ -279,7 +279,9 @@ namespace PostHttp {
                 WebResponse response = req.GetResponse();
                 StreamReader reader = new StreamReader(response.GetResponseStream());
                 result = reader.ReadToEnd();
-            } catch { }
+            } catch (Exception ex) {
+                this.Debug("UploadToEndPoint threw " + ex.GetType().FullName + ": '" + ex.Message + "'");
+            }
 
             this.ProgressBar.Done();
 

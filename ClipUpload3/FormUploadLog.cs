@@ -66,7 +66,9 @@ namespace ClipUpload3 {
             }
             try {
                 Clipboard.SetText(Text);
-            } catch { }
+            } catch (Exception ex) {
+                Program.Debug("Clipboard.SetText threw " + ex.GetType().FullName + ": '" + ex.Message + "'");
+            }
         }
 
         private void button3_Click(object sender, EventArgs e) {

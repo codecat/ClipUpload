@@ -72,7 +72,9 @@ namespace ClipUpload3 {
                         this.canUpdate = latestVersion;
                         this.Tray.ShowBalloonTip(10, "ClipUpload Update", "A new update for ClipUpload is available, version " + latestVersion + ". Click \"Update to " + latestVersion + "\" in the ClipUpload menu to automatically update.", ToolTipIcon.Info);
                     }
-                } catch { }
+                } catch (Exception ex) {
+                    Program.Debug("Update check threw " + ex.GetType().FullName + ": '" + ex.Message + "'");
+                }
             }
 
             if (curDir != Directory.GetCurrentDirectory())

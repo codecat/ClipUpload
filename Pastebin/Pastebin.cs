@@ -96,7 +96,9 @@ namespace Pastebin {
                 args += "&api_paste_private=" + (Private ? "1" : "0");
 
                 result = wc.UploadString("http://" + "pastebin.com/api/api_post.php", args);
-            } catch { }
+            } catch (Exception ex) {
+                this.Debug("UploadText threw " + ex.GetType().FullName + ": '" + ex.Message + "'");
+            }
 
             Tray.Icon = defIcon;
 

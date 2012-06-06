@@ -151,7 +151,7 @@ namespace Dropbox {
             if (result) {
                 string url = dbHttp + filename;
                 this.AddLog(url);
-                Clipboard.SetText(url);
+                this.SetClipboardText(url);
                 Tray.ShowBalloonTip(1000, "Save success!", "Image uploaded to Dropbox and URL copied to clipboard.", ToolTipIcon.Info);
             } else
                 Tray.ShowBalloonTip(1000, "Save failed!", "Something went wrong, it has to be something in your settings. Try again.\nMessage: '" + failReason + "'", ToolTipIcon.Error);
@@ -191,7 +191,7 @@ namespace Dropbox {
             if (result) {
                 string url = dbHttp + filename;
                 this.AddLog(url);
-                Clipboard.SetText(url);
+                this.SetClipboardText(url);
                 Tray.ShowBalloonTip(1000, "Save success!", "Animation uploaded to Dropbox and URL copied to clipboard.", ToolTipIcon.Info);
             } else
                 Tray.ShowBalloonTip(1000, "Save failed!", "Something went wrong, it has to be something in your settings. Try again.\nMessage: '" + failReason + "'", ToolTipIcon.Error);
@@ -228,7 +228,7 @@ namespace Dropbox {
             if (result) {
                 string url = dbHttp + filename;
                 this.AddLog(url);
-                Clipboard.SetText(url);
+                this.SetClipboardText(url);
                 Tray.ShowBalloonTip(1000, "Save success!", "Text uploaded to Dropbox and URL copied to clipboard.", ToolTipIcon.Info);
             } else
                 Tray.ShowBalloonTip(1000, "Save failed!", "Something went wrong, it has to be something in your settings. Try again.\nMessage: '" + failReason + "'", ToolTipIcon.Error);
@@ -258,7 +258,7 @@ namespace Dropbox {
             } catch (Exception ex) { failReason = ex.Message; }
 
             if (result) {
-                Clipboard.SetText(finalCopy.Substring(0, finalCopy.Length - 1));
+                this.SetClipboardText(finalCopy.Substring(0, finalCopy.Length - 1));
                 Tray.ShowBalloonTip(1000, "Save success!", "File(s) copied to your Dropbox Public folder and URL(s) copied.", ToolTipIcon.Info);
             } else
                 Tray.ShowBalloonTip(1000, "Save failed!", "Something went wrong, it has to be something in your settings. Try again.\nMessage: '" + failReason + "'", ToolTipIcon.Error);

@@ -184,7 +184,9 @@ namespace Facebook {
                 url = "https://" + "www.facebook.com/photo.php?fbid=" + photoID;
 
                 this.AddLog(url);
-            } catch { }
+            } catch (Exception ex) {
+                this.Debug("UploadToFacebook threw " + ex.GetType().FullName + ": '" + ex.Message + "'");
+            }
 
             this.ProgressBar.Done();
 

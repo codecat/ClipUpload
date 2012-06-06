@@ -118,7 +118,9 @@ namespace ClipUpload3 {
             string backupDirMessage = "";
             try {
                 backupDirMessage = "\nYour files will be backed up to '" + Path.GetFullPath(textBackupsPath.Text) + "'";
-            } catch { }
+            } catch (Exception ex) {
+                Program.Debug("Settings backup help button threw " + ex.GetType().FullName + ": '" + ex.Message + "'");
+            }
 
             MessageBox.Show("This is the formatting of the filename that is going to be saved in the above path. You can use the following variables in your formatting:\n\n" +
                             "  %ADDON% - FTP/Imgur/...\n" +

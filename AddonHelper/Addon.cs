@@ -24,6 +24,18 @@ namespace AddonHelper {
         public static Random rnd = new Random();
         private Settings appSettings = new Settings("settings.txt");
 
+        public void Debug(string str) {
+            StreamWriter writer;
+            if (File.Exists("debug.txt"))
+                writer = File.AppendText("debug.txt");
+            else
+                writer = new StreamWriter(File.Create("debug.txt"));
+
+            writer.WriteLine("[" + this.GetType().Name + " - " + DateTime.Now.ToString() + "] " + str);
+            writer.Close();
+            writer.Dispose();
+        }
+
         public long Epoch() {
             return (DateTime.Now.ToUniversalTime().Ticks - 621355968000000000) / 10000000;
         }
@@ -38,9 +50,8 @@ namespace AddonHelper {
             fnm = fnm.Replace("%FILENAME%", origFilename);
 
             char[] invalidChars = Path.GetInvalidFileNameChars();
-            foreach (char c in invalidChars) {
+            foreach (char c in invalidChars)
                 fnm = fnm.Replace(c.ToString(), "");
-            }
 
             return fnm;
         }
@@ -49,9 +60,8 @@ namespace AddonHelper {
             if (appSettings.GetBool("BackupsEnabled")) {
                 string path = appSettings.GetString("BackupsPath");
 
-                if (!Directory.Exists(path)) {
+                if (!Directory.Exists(path))
                     Directory.CreateDirectory(path);
-                }
 
                 string filename = Path.GetFileName(sourceFile);
                 string fnm = formatFilename(filename);
@@ -63,9 +73,8 @@ namespace AddonHelper {
             if (appSettings.GetBool("BackupsEnabled")) {
                 string path = appSettings.GetString("BackupsPath");
 
-                if (!Directory.Exists(path)) {
+                if (!Directory.Exists(path))
                     Directory.CreateDirectory(path);
-                }
 
                 string fnm = formatFilename(filename);
                 File.WriteAllBytes(path + "/" + fnm, buffer);
@@ -185,7 +194,9 @@ namespace AddonHelper {
             }
             try {
                 Clipboard.SetText(Text);
-            } catch { }
+            } catch (Exception ex) {
+                this.Debug("Clipboard.SetText threw " + ex.GetType().FullName + ": '" + ex.Message + "'");
+            }
         }
 
         public class cProgressBar {
