@@ -277,7 +277,7 @@ namespace Imgur {
                 StreamReader reader = new StreamReader(response.GetResponseStream());
                 string result = reader.ReadToEnd();
 
-                if (!result.Contains("stat=\"fail\"")) {
+                if (result.Contains("<original>http")) {
                     url = GetBetween(result, "<original>", "</original>");
                     this.AddLog(url);
                 }

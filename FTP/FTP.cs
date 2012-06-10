@@ -222,11 +222,11 @@ namespace FTP {
             Icon defIcon = (Icon)Tray.Icon.Clone();
             Tray.Icon = new Icon("Addons/FTP/Icon.ico");
 
-            MemoryStream ms = new MemoryStream(Encoding.UTF8.GetBytes(Text));
-
             bool result = false;
             string failReason = "";
             string filename = "";
+
+            byte[] textData = Encoding.UTF8.GetBytes(Text);
 
             bool canceled = false;
             try {
@@ -240,9 +240,9 @@ namespace FTP {
 
                 filename += ".txt";
 
-                canceled = !UploadToFTP(ms, filename);
+                canceled = !UploadToFTP(new MemoryStream(textData), filename);
 
-                this.Backup(ms.GetBuffer(), filename);
+                this.Backup(textData, filename);
 
                 result = true;
             } catch (Exception ex) { failReason = ex.Message; }
