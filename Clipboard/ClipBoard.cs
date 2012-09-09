@@ -88,20 +88,19 @@ namespace ClipBoard {
             img.Dispose();
             
             Tray.ShowBalloonTip(1000, "Copy success!", "Image copied to clipboard.", ToolTipIcon.Info);
+            this.ProgressBar.Done();
 
             Tray.Icon = defIcon;
         }
 
-
-        public void UploadImages(StringCollection files) {
-                return;
+        public void Settings()
+        {
+      
         }
 
         public void Upload() {
             if (Clipboard.ContainsImage())
                 UploadImage(Clipboard.GetImage());
-            else if (Clipboard.ContainsFileDropList())
-                UploadImages(Clipboard.GetFileDropList());
         }
     }
 }
