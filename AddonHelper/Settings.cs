@@ -95,5 +95,9 @@ namespace AddonHelper {
         public void Cancel() {
             loadFile();
         }
+
+        public void Reload() {
+            loadFile();
+        }
     }
 }

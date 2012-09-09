@@ -10,6 +10,8 @@ using System.Diagnostics;
 using System.Net;
 using System.Runtime.InteropServices;
 using System.Threading;
+using System.Drawing.Imaging;
+using System.Reflection;
 
 namespace AddonHelper {
     public enum DragCallbackType { Image, Animation, None }
@@ -38,6 +40,48 @@ namespace AddonHelper {
 
         public long Epoch() {
             return (DateTime.Now.ToUniversalTime().Ticks - 621355968000000000) / 10000000;
+        }
+
+        /// <summary>
+        /// Transforms an image based on global upload settings
+        /// </summary>
+        /// <param name="img">The base image</param>
+        public void ImagePipeline(Image img) {
+            Graphics gfx = Graphics.FromImage(img);
+
+            // 2nd anniversary easter egg, cats!
+            appSettings.Reload();
+            if (appSettings.Contains("Cats")) {
+                try {
+                    // First, get a random cat picture
+                    // Can be fetched from placekitten.com/g/<width>/<height>
+                    WebClient wc = new WebClient();
+                    Image catImage = Image.FromStream(new MemoryStream(wc.DownloadData("http://" + "placekitten.com/g/" + img.Width + "/" + img.Height)));
+
+                    // Create attributes that transform the image before pasting
+                    ImageAttributes imgAttributes = new ImageAttributes();
+                    imgAttributes.SetColorMatrix(new ColorMatrix() { Matrix33 = 0.5f }, ColorMatrixFlag.Default, ColorAdjustType.Bitmap); // Matrix33 = alpha
+
+                    // Now we draw the cat picture with the attributes
+                    gfx.DrawImage(catImage, new Rectangle(0, 0, img.Width, img.Height), 0, 0, img.Width, img.Height, GraphicsUnit.Pixel, imgAttributes);
+                } catch { }
+            }
+
+            gfx.Dispose();
+        }
+
+        public static void SetShortcuts(bool enabled) {
+            Form form = null;
+            foreach(Form f in Application.OpenForms) {
+                if(f.GetType().Name == "FormMain") {
+                    form = f;
+                    break;
+                }
+            }
+
+            FieldInfo fiListener = form.GetType().GetField("keyboardListener");
+            PropertyInfo piEnabled = fiListener.FieldType.GetProperty("Enabled");
+            piEnabled.SetValue(fiListener.GetValue(form), enabled, null);
         }
 
         private string formatFilename(string origFilename) {
@@ -81,7 +125,18 @@ namespace AddonHelper {
             }
         }
 
-        public void AddLog(string URL) {
+        public void AddLog(string URL, string info) {
+            Form form = null;
+            foreach (Form f in Application.OpenForms) {
+                if (f.GetType().Name == "FormMain") {
+                    form = f;
+                    break;
+                }
+            }
+
+            MethodInfo mi = form.GetType().GetMethod("JustUploaded");
+            mi.Invoke(form, new string[] { URL, info });
+
             StreamWriter writer;
             if (File.Exists("uploadlog.txt"))
                 writer = File.AppendText("uploadlog.txt");
@@ -199,6 +254,15 @@ namespace AddonHelper {
             }
         }
 
+        public ImageCodecInfo GetEncoder(ImageFormat format) {
+            ImageCodecInfo[] codecs = ImageCodecInfo.GetImageDecoders();
+            foreach (ImageCodecInfo codec in codecs) {
+                if (codec.FormatID == format.Guid)
+                    return codec;
+            }
+            return null;
+        }
+
         public class cProgressBar {
             public FormProgressBar Form;
 
@@ -218,6 +282,8 @@ namespace AddonHelper {
             }
 
             public void Start(string Filename, long Filesize, bool DisplaySpeed) {
+                Addon.SetShortcuts(false);
+
                 this.reset();
                 if (Filesize == 0) return;
 
@@ -305,6 +371,8 @@ namespace AddonHelper {
             }
 
             public void Done() {
+                Addon.SetShortcuts(true);
+
                 if (!Canceled && this.Form != null) {
                     this.done = true;
                     try {

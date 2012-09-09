@@ -139,7 +139,7 @@ namespace Snaggy {
             Tray.Icon = defIcon;
 
             string url = "http://" + "i.snag.gy/" + result + ".jpg";
-            this.AddLog(url);
+            this.AddLog(url, img.Width + " x " + img.Height);
             return url;
         }
 

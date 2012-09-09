@@ -156,11 +156,13 @@ namespace AddonHelper {
             if (buttonCrop.Checked) {
                 this.boxPreview.Visible = false;
 
-                Bitmap cropBmp = new Bitmap(this.previewRect.Width, this.previewRect.Height);
-                Graphics cropGfx = Graphics.FromImage(cropBmp);
-                cropGfx.DrawImage(this.img, new Point(-this.previewRect.X, -this.previewRect.Y));
-                this.img = cropBmp;
-                this.g = cropGfx;
+                if (this.previewRect.Width > 0 && this.previewRect.Height > 0) {
+                    Bitmap cropBmp = new Bitmap(this.previewRect.Width, this.previewRect.Height);
+                    Graphics cropGfx = Graphics.FromImage(cropBmp);
+                    cropGfx.DrawImage(this.img, new Point(-this.previewRect.X, -this.previewRect.Y));
+                    this.img = cropBmp;
+                    this.g = cropGfx;
+                }
             }
 
             if (buttonText.Checked) {

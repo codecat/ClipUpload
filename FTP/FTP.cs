@@ -29,6 +29,10 @@ namespace FTP {
         public bool shortMD5 = false;
         public int length = 8;
 
+        public bool jpegCompression = false;
+        public int jpegCompressionFilesize = 1000;
+        public int jpegCompressionRate = 75;
+
         public string shortCutDragModifiers = "";
         public string shortCutDragKey = "";
         public string shortCutPasteModifiers = "";
@@ -60,6 +64,15 @@ namespace FTP {
                 settings.Save();
             }
 
+            if (!settings.Contains("JpegCompression")) {
+                // Migrate old 3.10 config file
+                settings.SetBool("JpegCompression", false);
+                settings.SetInt("JpegCompressionFilesize", 1000);
+                settings.SetInt("JpegCompressionRate", 75);
+
+                settings.Save();
+            }
+
             ftpServer = settings.GetString("Server");
             ftpUsername = settings.GetString("Username");
             ftpPassword = base64Decode(settings.GetString("Password"));
@@ -74,6 +87,10 @@ namespace FTP {
             shortMD5 = settings.GetBool("ShortMD5");
 
             length = settings.GetInt("Length");
+
+            jpegCompression = settings.GetBool("JpegCompression");
+            jpegCompressionFilesize = settings.GetInt("JpegCompressionFilesize");
+            jpegCompressionRate = settings.GetInt("JpegCompressionRate");
 
             shortCutDragModifiers = settings.GetString("ShortcutDragModifiers");
             shortCutDragKey = settings.GetString("ShortcutDragKey");
@@ -130,14 +147,36 @@ namespace FTP {
             MemoryStream ms = new MemoryStream();
 
             ImageFormat format = ImageFormat.Png;
-            switch (imageFormat.ToLower()) {
+            string formatStr = imageFormat.ToLower();
+
+            switch (formatStr) {
                 case "png": format = ImageFormat.Png; break;
                 case "jpg": format = ImageFormat.Jpeg; break;
                 case "gif": format = ImageFormat.Gif; break;
             }
 
+            this.ImagePipeline(img);
+
             img.Save(ms, format);
-            img.Dispose();
+
+            if (jpegCompression) {
+                if (ms.Length / 1000 > jpegCompressionFilesize) {
+                    ms.Dispose();
+                    ms = new MemoryStream();
+
+                    // Set up the encoder, codec and params
+                    System.Drawing.Imaging.Encoder jpegEncoder = System.Drawing.Imaging.Encoder.Compression;
+                    ImageCodecInfo jpegCodec = this.GetEncoder(ImageFormat.Jpeg);
+                    EncoderParameters jpegParams = new EncoderParameters();
+                    jpegParams.Param[0] = new EncoderParameter(jpegEncoder, jpegCompressionRate);
+
+                    // Now save it with the new encoder
+                    img.Save(ms, jpegCodec, jpegParams);
+
+                    // And make sure the filename gets set correctly
+                    formatStr = "jpg";
+                }
+            }
 
             bool result = false;
             string failReason = "";
@@ -153,7 +192,7 @@ namespace FTP {
                         filename = filename.Substring(0, this.length);
                 }
 
-                filename += "." + imageFormat.ToLower();
+                filename += "." + formatStr;
 
                 this.Backup(ms.GetBuffer(), filename);
                 canceled = !UploadToFTP(ms, filename);
@@ -164,7 +203,7 @@ namespace FTP {
             if (!canceled) {
                 if (result) {
                     string url = ftpHttp + filename;
-                    this.AddLog(url);
+                    this.AddLog(url, img.Width + " x " + img.Height);
                     this.SetClipboardText(url);
                     Tray.ShowBalloonTip(1000, "Upload success!", "Image uploaded to FTP and URL copied to clipboard.", ToolTipIcon.Info);
                 } else {
@@ -172,6 +211,8 @@ namespace FTP {
                     Tray.ShowBalloonTip(1000, "Upload failed!", "Something went wrong, probably on your FTP server. Try again.\nMessage: '" + failReason + "'", ToolTipIcon.Error);
                 }
             }
+
+            img.Dispose();
 
             Tray.Icon = defIcon;
         }
@@ -206,7 +247,7 @@ namespace FTP {
             if (!canceled) {
                 if (result) {
                     string url = ftpHttp + filename;
-                    this.AddLog(url);
+                    this.AddLog(url, (ms.Length / 1000) + " kB");
                     this.SetClipboardText(url);
                     Tray.ShowBalloonTip(1000, "Upload success!", "Animation uploaded to FTP and URL copied to clipboard.", ToolTipIcon.Info);
                 } else {
@@ -250,7 +291,7 @@ namespace FTP {
             if (!canceled) {
                 if (result) {
                     string url = ftpHttp + filename;
-                    this.AddLog(url);
+                    this.AddLog(url, Text.Length + " characters");
                     this.SetClipboardText(url);
                     Tray.ShowBalloonTip(1000, "Upload success!", "Text uploaded to FTP and URL copied to clipboard.", ToolTipIcon.Info);
                 } else {
@@ -281,7 +322,7 @@ namespace FTP {
                         break;
 
                     string url = ftpHttp + Uri.EscapeDataString(filename);
-                    this.AddLog(url);
+                    this.AddLog(url, (new FileInfo(file).Length / 1000) + " kB");
 
                     finalCopy += url + "\n";
                 }

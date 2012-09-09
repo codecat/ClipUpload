@@ -37,6 +37,10 @@ namespace FTP {
 
             numLength.Value = mainClass.length;
 
+            checkJpegCompression.Checked = mainClass.jpegCompression;
+            numJpegCompressionFilesize.Value = mainClass.jpegCompressionFilesize;
+            numJpegCompressionRate.Value = mainClass.jpegCompressionRate;
+
             {
                 string[] parts = mainClass.shortCutDragModifiers.Split('+');
                 foreach (string part in parts) {
@@ -82,6 +86,10 @@ namespace FTP {
 
             mainClass.settings.SetInt("Length", (int)numLength.Value);
 
+            mainClass.settings.SetBool("JpegCompression", checkJpegCompression.Checked);
+            mainClass.settings.SetInt("JpegCompressionFilesize", (int)numJpegCompressionFilesize.Value);
+            mainClass.settings.SetInt("JpegCompressionRate", (int)numJpegCompressionRate.Value);
+
             {
                 string shortcutModifiers = "";
                 if (checkDragModCtrl.Checked) shortcutModifiers += "+Ctrl";
@@ -117,6 +125,10 @@ namespace FTP {
 
         private void numShortMD5Count_ValueChanged(object sender, EventArgs e) {
             checkShortMD5.Checked = true;
+        }
+
+        private void button3_Click(object sender, EventArgs e) {
+            MessageBox.Show("This turns the uploaded image into a Jpeg instead of the usual format selected on the left. If the resulting filesize is larger than X amount of KB, it will use the given compression rate.", "Jpeg compression", MessageBoxButtons.OK, MessageBoxIcon.Information);
         }
     }
 }

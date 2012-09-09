@@ -31,6 +31,10 @@ namespace Dropbox {
         public string shortCutPasteModifiers = "";
         public string shortCutPasteKey = "";
 
+        public bool jpegCompression = false;
+        public int jpegCompressionFilesize = 1000;
+        public int jpegCompressionRate = 75;
+
         private Bitmap bmpIcon;
 
         public void Initialize(NotifyIcon Tray) {
@@ -56,6 +60,15 @@ namespace Dropbox {
                 settings.Save();
             }
 
+            if (!settings.Contains("JpegCompression")) {
+                // Migrate old 3.10 config file
+                settings.SetBool("JpegCompression", false);
+                settings.SetInt("JpegCompressionFilesize", 1000);
+                settings.SetInt("JpegCompressionRate", 75);
+
+                settings.Save();
+            }
+
             dbPath = settings.GetString("Path");
             dbHttp = settings.GetString("Http");
 
@@ -65,6 +78,10 @@ namespace Dropbox {
             shortMD5 = settings.GetBool("ShortMD5");
 
             length = settings.GetInt("Length");
+
+            jpegCompression = settings.GetBool("JpegCompression");
+            jpegCompressionFilesize = settings.GetInt("JpegCompressionFilesize");
+            jpegCompressionRate = settings.GetInt("JpegCompressionRate");
 
             shortCutDragModifiers = settings.GetString("ShortcutDragModifiers");
             shortCutDragKey = settings.GetString("ShortcutDragKey");
@@ -119,6 +136,8 @@ namespace Dropbox {
             Tray.Icon = new Icon("Addons/Dropbox/Icon.ico");
 
             ImageFormat format = ImageFormat.Png;
+            string formatStr = imageFormat.ToLower();
+
             switch (imageFormat.ToLower()) {
                 case "png": format = ImageFormat.Png; break;
                 case "jpg": format = ImageFormat.Jpeg; break;
@@ -130,6 +149,8 @@ namespace Dropbox {
             string filename = "";
 
             try {
+                this.ImagePipeline(img);
+
                 filename = this.RandomFilename(this.settings.GetInt("Length")).ToLower();
                 if (this.useMD5) {
                     filename = MD5(filename + rnd.Next(1000, 9999).ToString());
@@ -138,10 +159,30 @@ namespace Dropbox {
                         filename = filename.Substring(0, this.length);
                 }
 
-                filename += "." + imageFormat.ToLower();
+                if (jpegCompression) {
+                    MemoryStream ms = new MemoryStream();
+                    img.Save(ms, format);
 
-                img.Save(dbPath + "/" + filename, format);
-                img.Dispose();
+                    if (ms.Length / 1000 > jpegCompressionFilesize) {
+                        ms.Dispose();
+
+                        // Set up the encoder, codec and params
+                        System.Drawing.Imaging.Encoder jpegEncoder = System.Drawing.Imaging.Encoder.Compression;
+                        ImageCodecInfo jpegCodec = this.GetEncoder(ImageFormat.Jpeg);
+                        EncoderParameters jpegParams = new EncoderParameters();
+                        jpegParams.Param[0] = new EncoderParameter(jpegEncoder, jpegCompressionRate);
+
+                        // Now save it with the new encoder
+                        filename += ".jpg";
+                        img.Save(dbPath + "/" + filename, jpegCodec, jpegParams);
+                    } else {
+                        filename += "." + formatStr;
+                        img.Save(dbPath + "/" + filename, format);
+                    }
+                } else {
+                    filename += "." + formatStr;
+                    img.Save(dbPath + "/" + filename, format);
+                }
 
                 this.Backup(dbPath + "/" + filename);
 
@@ -150,11 +191,13 @@ namespace Dropbox {
 
             if (result) {
                 string url = dbHttp + filename;
-                this.AddLog(url);
+                this.AddLog(url, img.Width + " x " + img.Height);
                 this.SetClipboardText(url);
                 Tray.ShowBalloonTip(1000, "Save success!", "Image uploaded to Dropbox and URL copied to clipboard.", ToolTipIcon.Info);
             } else
                 Tray.ShowBalloonTip(1000, "Save failed!", "Something went wrong, it has to be something in your settings. Try again.\nMessage: '" + failReason + "'", ToolTipIcon.Error);
+
+            img.Dispose();
 
             Tray.Icon = defIcon;
         }
@@ -182,7 +225,7 @@ namespace Dropbox {
                 fs.Write(ms.GetBuffer(), 0, (int)ms.Length);
                 fs.Close();
                 fs.Dispose();
-                
+
                 this.Backup(dbPath + "/" + filename);
 
                 result = true;
@@ -190,7 +233,7 @@ namespace Dropbox {
 
             if (result) {
                 string url = dbHttp + filename;
-                this.AddLog(url);
+                this.AddLog(url, (ms.Length / 1000) + " kB");
                 this.SetClipboardText(url);
                 Tray.ShowBalloonTip(1000, "Save success!", "Animation uploaded to Dropbox and URL copied to clipboard.", ToolTipIcon.Info);
             } else
@@ -227,7 +270,7 @@ namespace Dropbox {
 
             if (result) {
                 string url = dbHttp + filename;
-                this.AddLog(url);
+                this.AddLog(url, Text.Length + " characters");
                 this.SetClipboardText(url);
                 Tray.ShowBalloonTip(1000, "Save success!", "Text uploaded to Dropbox and URL copied to clipboard.", ToolTipIcon.Info);
             } else
@@ -250,7 +293,7 @@ namespace Dropbox {
 
                     File.Copy(file, dbPath + "/" + filename);
                     string url = dbHttp + Uri.EscapeDataString(filename);
-                    this.AddLog(url);
+                    this.AddLog(url, (new FileInfo(file).Length / 1000) + " kB");
                     finalCopy += url + "\n";
                 }
 

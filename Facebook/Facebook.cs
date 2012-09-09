@@ -38,7 +38,13 @@ namespace Facebook {
             LoadSettings();
 
             if (this.facebookClient.AccessToken != "") {
-                this.facebookName = (this.facebookClient.Get("/me") as dynamic).name;
+                try {
+                    this.facebookName = (this.facebookClient.Get("/me") as dynamic).name;
+                } catch {
+                    // If it crashes here, then the user probably doesn't have a working internet connection.
+                    // Not sure what else to do here besides turning off the addon itself...
+                    this.facebookClient.AccessToken = "";
+                }
             }
         }
 
@@ -183,7 +189,7 @@ namespace Facebook {
                 string photoID = ret.id;
                 url = "https://" + "www.facebook.com/photo.php?fbid=" + photoID;
 
-                this.AddLog(url);
+                this.AddLog(url, (ms.Length / 1000) + " kB");
             } catch (Exception ex) {
                 this.Debug("UploadToFacebook threw " + ex.GetType().FullName + ": '" + ex.Message + "'");
             }

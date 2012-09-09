@@ -103,7 +103,7 @@ namespace Pastebin {
             Tray.Icon = defIcon;
 
             if (!result.Contains("Bad API request, ")) {
-                this.AddLog(result);
+                this.AddLog(result, Content.Length + " characters");
                 Tray.ShowBalloonTip(1000, "Upload success!", "Text uploaded to Pastebin and URL copied to clipboard.", ToolTipIcon.Info);
 
                 return result;
@@ -120,7 +120,7 @@ namespace Pastebin {
                 result = UploadText(Clipboard.GetText(), Private);
             else if (Clipboard.ContainsFileDropList()) {
                 StringCollection files = Clipboard.GetFileDropList();
-                if (files.Count == 1)
+                if (files.Count == 1 && !files[0].ToLower().EndsWith(".exe"))
                     result = UploadText(File.ReadAllText(files[0]), Private);
             }
 

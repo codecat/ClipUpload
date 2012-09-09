@@ -37,6 +37,10 @@ namespace Dropbox {
             checkShortMD5.Checked = mainClass.shortMD5;
             numLength.Value = mainClass.length;
 
+            checkJpegCompression.Checked = mainClass.jpegCompression;
+            numJpegCompressionFilesize.Value = mainClass.jpegCompressionFilesize;
+            numJpegCompressionRate.Value = mainClass.jpegCompressionRate;
+
             {
                 string[] parts = mainClass.shortCutDragModifiers.Split('+');
                 foreach (string part in parts) {
@@ -100,6 +104,10 @@ namespace Dropbox {
 
                 mainClass.settings.SetInt("Length", (int)numLength.Value);
 
+                mainClass.settings.SetBool("JpegCompression", checkJpegCompression.Checked);
+                mainClass.settings.SetInt("JpegCompressionFilesize", (int)numJpegCompressionFilesize.Value);
+                mainClass.settings.SetInt("JpegCompressionRate", (int)numJpegCompressionRate.Value);
+
                 {
                     string shortcutModifiers = "";
                     if (checkDragModCtrl.Checked) shortcutModifiers += "+Ctrl";
@@ -140,6 +148,10 @@ namespace Dropbox {
 
         private void button3_Click(object sender, EventArgs e) {
             MessageBox.Show("ClipUpload can not automatically detect your Dropbox public link, so you'll have to give part of it yourself. To do that, make a dummy file (test.txt) in your public folder, right click it, click \"Dropbox\" -> \"Copy public link\", then paste the link in the field here. Remember to remove the \"test.txt\" from the field. You can now remove test.txt from your public folder again.", "Dropbox Public Link", MessageBoxButtons.OK, MessageBoxIcon.Information);
+        }
+
+        private void button4_Click(object sender, EventArgs e) {
+            MessageBox.Show("This turns the uploaded image into a Jpeg instead of the usual format selected on the left. If the resulting filesize is larger than X amount of KB, it will use the given compression rate.", "Jpeg compression", MessageBoxButtons.OK, MessageBoxIcon.Information);
         }
     }
 }

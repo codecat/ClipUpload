@@ -14,6 +14,7 @@ using GlobalHook.WinApi;
 using System.Diagnostics;
 using System.Net;
 using System.Threading;
+using System.Runtime.InteropServices;
 
 namespace ClipUpload3 {
     public partial class FormMain : Form {
@@ -23,6 +24,11 @@ namespace ClipUpload3 {
             public bool ModAlt = false;
             public bool ModShift = false;
             public Keys Key = 0;
+        }
+
+        public class LogInfo {
+            public string URL;
+            public string Info;
         }
 
         public List<Addon> Addons = new List<Addon>();
@@ -38,8 +44,17 @@ namespace ClipUpload3 {
         public KeyboardHookListener keyboardListener;
         public KeyEventHandler keyboardHandler;
 
+        public List<LogInfo> LogInfos = new List<LogInfo>();
+
         public FormMain() {
             InitializeComponent();
+        }
+
+        public void JustUploaded(string url, string info) {
+            LogInfos.Add(new LogInfo() { URL = url, Info = info });
+            if (LogInfos.Count > 5) { // todo not hardcode
+                LogInfos.RemoveRange(0, LogInfos.Count - 5); // todo not hardcode
+            }
         }
 
         private void Form1_Load(object sender, EventArgs e) {
@@ -57,9 +72,9 @@ namespace ClipUpload3 {
 
             this.settings = new Settings("settings.txt");
 
-            LoadSettings();
-            LoadAddons();
-            UpdateList();
+            this.LoadSettings();
+            this.LoadAddons();
+            this.UpdateList();
 
             this.Text = "ClipUpload " + Version;
 
@@ -70,7 +85,7 @@ namespace ClipUpload3 {
                     string latestVersion = wc.DownloadString("http://" + "clipupload.net/?update");
                     if (latestVersion != Version) {
                         this.canUpdate = latestVersion;
-                        this.Tray.ShowBalloonTip(10, "ClipUpload Update", "A new update for ClipUpload is available, version " + latestVersion + ". Click \"Update to " + latestVersion + "\" in the ClipUpload menu to automatically update.", ToolTipIcon.Info);
+                        this.Tray.ShowBalloonTip(10, "ClipUpload Update", "A new update for ClipUpload is available, version " + latestVersion + ". Visit ClipUpload.net or click on the \"Update\" entry in the ClipUpload menu to download the new version.", ToolTipIcon.Info);
                     }
                 } catch (Exception ex) {
                     Program.Debug("Update check threw " + ex.GetType().FullName + ": '" + ex.Message + "'");
@@ -136,6 +151,27 @@ namespace ClipUpload3 {
                 this.settings.SetString("BackupsFormat", "%DATE% %TIME% %FILENAME%");
 
                 this.settings.Save();
+            }
+
+            if (this.settings.GetString("Version") == "3.10") {
+                // Migrate from old 3.10 config file
+                this.settings.SetString("Version", "3.11");
+
+                this.settings.Save();
+            }
+
+            if (this.settings.GetString("Version") == "3.11") {
+                // Migrate from old 3.11 config file
+                this.settings.SetString("Version", "3.12");
+
+                this.settings.Save();
+            }
+
+            if (File.Exists("Updater.exe")) {
+                // Hotfix for 3.10 to 3.11.
+                // The updater didn't have "Updater.exe" in its blacklist.
+                // The new filename is Update.exe.
+                File.Delete("Updater.exe");
             }
 
             this.Version = this.settings.GetString("Version");
@@ -329,8 +365,11 @@ namespace ClipUpload3 {
                 bool modifiersOK = (control || !shortcut.ModCtrl) &&
                                    (shift || !shortcut.ModShift) &&
                                    (alt || !shortcut.ModAlt);
-                if (modifiersOK && e.KeyCode == shortcut.Key)
+                if (modifiersOK && e.KeyCode == shortcut.Key) {
+                    e.SuppressKeyPress = true;
                     shortcut.Action();
+                    break;
+                }
             }
         }
 
@@ -366,6 +405,21 @@ namespace ClipUpload3 {
                         cms.Items.Add(new ToolStripSeparator());
                 }
 
+                if (LogInfos.Count > 0) {
+                    foreach (LogInfo logInfo in LogInfos.Reverse<LogInfo>()) {
+                        LogInfo temp = logInfo;
+
+                        string filename = "";
+                        try {
+                            filename = Path.GetFileName(temp.URL);
+                        } catch { }
+
+                        tsi = (ToolStripMenuItem)cms.Items.Add(filename + " - " + temp.Info);
+                        tsi.Click += new EventHandler(delegate { SetClipboardText(temp.URL); });
+                    }
+                    cms.Items.Add(new ToolStripSeparator());
+                }
+
                 tsi = (ToolStripMenuItem)cms.Items.Add("Settings");
                 tsi.Image = this.iconList.Images[0];
                 tsi.Click += new EventHandler(delegate { Show(); });
@@ -386,8 +440,8 @@ namespace ClipUpload3 {
                     tsi = (ToolStripMenuItem)cms.Items.Add("Update to " + this.canUpdate);
                     tsi.Image = this.iconList.Images[5];
                     tsi.Click += new EventHandler(delegate {
-                        if (File.Exists("Updater.exe")) {
-                            Process.Start("Updater.exe");
+                        if (File.Exists("Update.exe")) {
+                            Process.Start("Update.exe");
                             this.KillMe();
                         }
                     });
@@ -396,8 +450,49 @@ namespace ClipUpload3 {
                 tsi = (ToolStripMenuItem)cms.Items.Add("Exit");
                 tsi.Click += new EventHandler(delegate { KillMe(); });
 
+                // 2nd anniversary
+                if (!this.settings.Contains("Cats")) {
+                    DateTime now = DateTime.Now;
+                    if (now.Day == 14 && now.Month == 7 && now.Year == 2012) {
+                        cms.Items.Add(new ToolStripSeparator());
+
+                        tsi = (ToolStripMenuItem)cms.Items.Add("Happy 2nd Anniversary, ClipUpload!");
+                        tsi.Image = this.iconList.Images[6];
+                        tsi.Click += new EventHandler(delegate {
+                            this.settings.SetBool("Cats", true);
+                            this.settings.Save();
+                            MessageBox.Show("You may now upload cat watermarks. Enjoy.", "ClipUpload 2nd Anniversary", MessageBoxButtons.OK, MessageBoxIcon.Information);
+                        });
+                    }
+                } else {
+                    cms.Items.Add(new ToolStripSeparator());
+
+                    tsi = (ToolStripMenuItem)cms.Items.Add("Disable anniversary cats");
+                    tsi.Image = this.iconList.Images[6];
+                    tsi.Click += new EventHandler(delegate {
+                        this.settings.Delete("Cats");
+                        this.settings.Save();
+                        MessageBox.Show("And the cat watermarks are now gone.", "ClipUpload 2nd Anniversary", MessageBoxButtons.OK, MessageBoxIcon.Information);
+                    });
+                }
+
                 Tray.ContextMenuStrip = cms;
             }
+        }
+
+        [DllImport("user32.dll")]
+        public static extern IntPtr GetOpenClipboardWindow();
+
+        public void SetClipboardText(string Text) {
+            int timeout = 5;
+            while (timeout-- > 0) {
+                IntPtr cbTry = GetOpenClipboardWindow();
+                if (cbTry == IntPtr.Zero) break;
+                System.Threading.Thread.Sleep(100);
+            }
+            try {
+                Clipboard.SetText(Text);
+            } catch { }
         }
 
         private void Tray_BalloonTipClicked(object sender, EventArgs e) {

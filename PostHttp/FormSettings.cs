@@ -26,6 +26,11 @@ namespace PostHttp {
 
             textURL.Text = mainClass.endpointURL;
             textName.Text = mainClass.endpointName;
+            textAuthentication.Text = mainClass.endpointAuthorization;
+
+            checkJpegCompression.Checked = mainClass.jpegCompression;
+            numJpegCompressionFilesize.Value = mainClass.jpegCompressionFilesize;
+            numJpegCompressionRate.Value = mainClass.jpegCompressionRate;
 
             {
                 string[] parts = mainClass.shortCutDragModifiers.Split('+');
@@ -60,6 +65,11 @@ namespace PostHttp {
             mainClass.settings.SetString("Format", comboFormat.Items[comboFormat.SelectedIndex].ToString());
             mainClass.settings.SetString("EndpointURL", textURL.Text);
             mainClass.settings.SetString("EndpointName", textName.Text);
+            mainClass.settings.SetString("EndpointAuthorization", textAuthentication.Text);
+
+            mainClass.settings.SetBool("JpegCompression", checkJpegCompression.Checked);
+            mainClass.settings.SetInt("JpegCompressionFilesize", (int)numJpegCompressionFilesize.Value);
+            mainClass.settings.SetInt("JpegCompressionRate", (int)numJpegCompressionRate.Value);
 
             {
                 string shortcutModifiers = "";
@@ -92,6 +102,10 @@ namespace PostHttp {
 
         private void button2_Click(object sender, EventArgs e) {
             this.Close();
+        }
+
+        private void button3_Click(object sender, EventArgs e) {
+            MessageBox.Show("This turns the uploaded image into a Jpeg instead of the usual format selected on the left. If the resulting filesize is larger than X amount of KB, it will use the given compression rate.", "Jpeg compression", MessageBoxButtons.OK, MessageBoxIcon.Information);
         }
     }
 }

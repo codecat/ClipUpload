@@ -33,6 +33,10 @@ namespace Imgur {
         public string shortCutPasteModifiers = "";
         public string shortCutPasteKey = "";
 
+        public bool jpegCompression = false;
+        public int jpegCompressionFilesize = 1000;
+        public int jpegCompressionRate = 75;
+
         private Bitmap bmpIcon;
 
         public OAuth oauth;
@@ -66,6 +70,10 @@ namespace Imgur {
                 settings.SetString("AccessToken", "");
                 settings.SetString("AccessTokenSecret", "");
 
+                settings.SetBool("JpegCompression", false);
+                settings.SetInt("JpegCompressionFilesize", 1000);
+                settings.SetInt("JpegCompressionRate", 75);
+
                 settings.Save();
             }
 
@@ -75,6 +83,10 @@ namespace Imgur {
             shortCutDragKey = settings.GetString("ShortcutDragKey");
             shortCutPasteModifiers = settings.GetString("ShortcutPasteModifiers");
             shortCutPasteKey = settings.GetString("ShortcutPasteKey");
+
+            jpegCompression = settings.GetBool("JpegCompression");
+            jpegCompressionFilesize = settings.GetInt("JpegCompressionFilesize");
+            jpegCompressionRate = settings.GetInt("JpegCompressionRate");
 
             this.oauth = new OAuth("https://" + "api.imgur.com/oauth/", this.imgurConsumerKey, this.imgurConsumerSecret);
             this.oauth.ServiceIcon = new Icon("Addons/Imgur/Icon.ico");
@@ -134,21 +146,44 @@ namespace Imgur {
             MemoryStream ms = new MemoryStream();
 
             ImageFormat format = ImageFormat.Png;
-            switch (imageFormat.ToLower()) {
+            string formatStr = imageFormat.ToLower();
+
+            switch (formatStr) {
                 case "png": format = ImageFormat.Png; break;
                 case "jpg": format = ImageFormat.Jpeg; break;
                 case "gif": format = ImageFormat.Gif; break;
             }
 
-            img.Save(ms, format);
-            img.Dispose();
+            this.ImagePipeline(img);
 
-            string url = this.UploadToImgur(ms);
+            img.Save(ms, format);
+
+            if (jpegCompression) {
+                if (ms.Length / 1000 > jpegCompressionFilesize) {
+                    ms.Dispose();
+                    ms = new MemoryStream();
+
+                    // Set up the encoder, codec and params
+                    System.Drawing.Imaging.Encoder jpegEncoder = System.Drawing.Imaging.Encoder.Compression;
+                    ImageCodecInfo jpegCodec = this.GetEncoder(ImageFormat.Jpeg);
+                    EncoderParameters jpegParams = new EncoderParameters();
+                    jpegParams.Param[0] = new EncoderParameter(jpegEncoder, jpegCompressionRate);
+
+                    // Now save it with the new encoder
+                    img.Save(ms, jpegCodec, jpegParams);
+
+                    // And make sure the filename gets set correctly (for the Imgur addon this is only for the backups)
+                    formatStr = "jpg";
+                }
+            }
+
+            string url = this.UploadToImgur(ms, img.Width, img.Height);
+            img.Dispose();
 
             if (url != "CANCELED" && url != "")
                 this.Backup(ms.GetBuffer(), url.Split('/', '\\').Last());
             else
-                this.Backup(ms.GetBuffer(), this.RandomFilename(5) + "." + imageFormat.ToLower());
+                this.Backup(ms.GetBuffer(), this.RandomFilename(5) + "." + formatStr);
 
             if (url != "CANCELED") {
                 if (url != "") {
@@ -167,7 +202,7 @@ namespace Imgur {
             Icon defIcon = (Icon)Tray.Icon.Clone();
             Tray.Icon = new Icon("Addons/Imgur/Icon.ico");
 
-            string url = this.UploadToImgur(ms);
+            string url = this.UploadToImgur(ms, -1, -1);
             if (url != "CANCELED" && url != "")
                 this.Backup(ms.GetBuffer(), url.Split('/', '\\').Last());
             else
@@ -198,9 +233,12 @@ namespace Imgur {
                 if (!(file.EndsWith(".png") || file.EndsWith(".jpg") || file.EndsWith(".gif")))
                     continue;
 
+                Image img = Image.FromFile(file);
                 MemoryStream ms = new MemoryStream(File.ReadAllBytes(file));
 
-                string url = this.UploadToImgur(ms);
+                string url = this.UploadToImgur(ms, img.Width, img.Height);
+                img.Dispose();
+
                 if (url == "CANCELED") {
                     finalCopy = "CANCELED";
                     break;
@@ -223,7 +261,7 @@ namespace Imgur {
             Tray.Icon = defIcon;
         }
 
-        public string UploadToImgur(MemoryStream ms) {
+        public string UploadToImgur(MemoryStream ms, int width, int height) {
             byte[] writeData;
             if (this.authenticated)
                 writeData = Encoding.ASCII.GetBytes("image=" + LongDataEscape(Convert.ToBase64String(ms.ToArray())));
@@ -279,7 +317,11 @@ namespace Imgur {
 
                 if (result.Contains("<original>http")) {
                     url = GetBetween(result, "<original>", "</original>");
-                    this.AddLog(url);
+
+                    if (width != -1)
+                        this.AddLog(url, width + " x " + height);
+                    else
+                        this.AddLog(url, (ms.Length / 1000) + " kB");
                 }
             } catch (Exception ex) {
                 this.Debug("UploadToImgur threw " + ex.GetType().FullName + ": '" + ex.Message + "'");

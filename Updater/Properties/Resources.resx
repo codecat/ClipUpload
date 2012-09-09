@@ -118,7 +118,7 @@
     <value>System.Resources.ResXResourceWriter, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
   </resheader>
   <data name="Blacklist" xml:space="preserve">
-    <value>settings.txt,info.txt</value>
+    <value>settings.txt,info.txt,Updater.exe,Update.exe</value>
   </data>
   <data name="ChangelogURL" xml:space="preserve">
     <value>http://clipupload.net/changelog.txt</value>

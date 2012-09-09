@@ -39,6 +39,7 @@ namespace AddonHelper {
             InitializeComponent();
 
             this.addon = addon;
+            Addon.SetShortcuts(false);
 
             this.settings = new Settings("settings.txt");
 
@@ -121,6 +122,7 @@ namespace AddonHelper {
 
                     if (img != null) {
                         if (this.settings.GetInt("DragEditor") == 0) {
+                            Addon.SetShortcuts(true);
                             new FormEditor(img, this.DoneDragging).Show();
                         } else if (this.settings.GetInt("DragEditor") == 1) {
                             string exePath = this.settings.GetString("DragExtraPath");
@@ -149,6 +151,7 @@ namespace AddonHelper {
             } else if (keyData == Keys.O) {
                 if (this.AnimationAllowed) {
                     this.Close();
+                    Addon.SetShortcuts(true);
                     new FormAnimation(this, this.Selection, this.DoneDragging).Show();
                 }
             }
@@ -285,8 +288,13 @@ namespace AddonHelper {
                     this.Hide();
                     Application.DoEvents();
 
-                    if (DoneDragging != null)
-                        DoneDragging.Invoke(new DragCallback() { Type = DragCallbackType.Image, Image = this.SelectionImage });
+                    if (DoneDragging != null) {
+                        Addon.SetShortcuts(true);
+                        DoneDragging(new DragCallback() {
+                            Type = DragCallbackType.Image,
+                            Image = this.SelectionImage
+                        });
+                    }
 
                     this.Close();
                 }
@@ -318,6 +326,7 @@ namespace AddonHelper {
         }
 
         private void FormDrag_FormClosing(object sender, FormClosingEventArgs e) {
+            Addon.SetShortcuts(true);
             this.beginImage.Dispose();
             this.Dispose();
         }

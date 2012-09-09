@@ -87,9 +87,9 @@
             // 
             // listAddons
             // 
-            this.listAddons.Anchor = ((System.Windows.Forms.AnchorStyles)((((System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Bottom)
-                        | System.Windows.Forms.AnchorStyles.Left)
-                        | System.Windows.Forms.AnchorStyles.Right)));
+            this.listAddons.Anchor = ((System.Windows.Forms.AnchorStyles)((((System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Bottom) 
+            | System.Windows.Forms.AnchorStyles.Left) 
+            | System.Windows.Forms.AnchorStyles.Right)));
             this.listAddons.Columns.AddRange(new System.Windows.Forms.ColumnHeader[] {
             this.columnHeader1,
             this.columnHeader2,
@@ -214,6 +214,7 @@
             this.iconList.Images.SetKeyName(3, "enable.png");
             this.iconList.Images.SetKeyName(4, "backup_manager.png");
             this.iconList.Images.SetKeyName(5, "update.png");
+            this.iconList.Images.SetKeyName(6, "cake.png");
             // 
             // FormMain
             // 

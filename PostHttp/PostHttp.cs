@@ -20,6 +20,11 @@ namespace PostHttp {
         public string imageFormat = "PNG";
         public string endpointURL = "";
         public string endpointName = "";
+        public string endpointAuthorization = "";
+
+        public bool jpegCompression = false;
+        public int jpegCompressionFilesize = 1000;
+        public int jpegCompressionRate = 75;
 
         public string shortCutDragModifiers = "";
         public string shortCutDragKey = "";
@@ -50,9 +55,25 @@ namespace PostHttp {
                 settings.Save();
             }
 
+            if (!settings.Contains("JpegCompression")) {
+                // Migrate old 3.10 config file
+                settings.SetBool("JpegCompression", false);
+                settings.SetInt("JpegCompressionFilesize", 1000);
+                settings.SetInt("JpegCompressionRate", 75);
+
+                settings.SetString("EndpointAuthorization", "");
+
+                settings.Save();
+            }
+
             imageFormat = settings.GetString("Format");
             endpointURL = settings.GetString("EndpointURL");
             endpointName = settings.GetString("EndpointName");
+            endpointAuthorization = settings.GetString("EndpointAuthorization");
+
+            jpegCompression = settings.GetBool("JpegCompression");
+            jpegCompressionFilesize = settings.GetInt("JpegCompressionFilesize");
+            jpegCompressionRate = settings.GetInt("JpegCompressionRate");
 
             shortCutDragModifiers = settings.GetString("ShortcutDragModifiers");
             shortCutDragKey = settings.GetString("ShortcutDragKey");
@@ -107,13 +128,36 @@ namespace PostHttp {
             MemoryStream ms = new MemoryStream();
 
             ImageFormat format = ImageFormat.Png;
+            string formatStr = imageFormat.ToLower();
+
             switch (imageFormat.ToLower()) {
                 case "png": format = ImageFormat.Png; break;
                 case "jpg": format = ImageFormat.Jpeg; break;
                 case "gif": format = ImageFormat.Gif; break;
             }
 
+            this.ImagePipeline(img);
+
             img.Save(ms, format);
+
+            if (jpegCompression) {
+                if (ms.Length / 1000 > jpegCompressionFilesize) {
+                    ms.Dispose();
+                    ms = new MemoryStream();
+
+                    // Set up the encoder, codec and params
+                    System.Drawing.Imaging.Encoder jpegEncoder = System.Drawing.Imaging.Encoder.Compression;
+                    ImageCodecInfo jpegCodec = this.GetEncoder(ImageFormat.Jpeg);
+                    EncoderParameters jpegParams = new EncoderParameters();
+                    jpegParams.Param[0] = new EncoderParameter(jpegEncoder, jpegCompressionRate);
+
+                    // Now save it with the new encoder
+                    img.Save(ms, jpegCodec, jpegParams);
+
+                    // And make sure the filename gets set correctly
+                    formatStr = "jpg";
+                }
+            }
 
             string result = UploadToEndPoint(ms, this.endpointName);
 
@@ -122,7 +166,7 @@ namespace PostHttp {
 
                 if (result.StartsWith("http")) {
                     this.SetClipboardText(result);
-                    this.AddLog(result);
+                    this.AddLog(result, img.Width + " x " + img.Height);
                     Tray.ShowBalloonTip(1000, "Upload success!", "Image uploaded to " + endpointName + " and URL copied to clipboard.", ToolTipIcon.Info);
 
                     filename = result.Split('/', '\\').Last();
@@ -134,8 +178,10 @@ namespace PostHttp {
                 if (filename != "")
                     this.Backup(ms.GetBuffer(), filename);
                 else
-                    this.Backup(ms.GetBuffer(), this.RandomFilename(5) + "." + imageFormat.ToLower());
+                    this.Backup(ms.GetBuffer(), this.RandomFilename(5) + "." + formatStr);
             }
+
+            img.Dispose();
 
             Tray.Icon = defIcon;
         }
@@ -151,7 +197,7 @@ namespace PostHttp {
 
                 if (result.StartsWith("http")) {
                     this.SetClipboardText(result);
-                    this.AddLog(result);
+                    this.AddLog(result, (ms.Length / 1000) + " kB");
                     Tray.ShowBalloonTip(1000, "Upload success!", "Animation uploaded to " + endpointName + " and URL copied to clipboard.", ToolTipIcon.Info);
 
                     filename = result.Split('/', '\\').Last();
@@ -180,7 +226,7 @@ namespace PostHttp {
 
                 if (result.StartsWith("http")) {
                     this.SetClipboardText(result);
-                    this.AddLog(result);
+                    this.AddLog(result, Text.Length + " characters");
                     Tray.ShowBalloonTip(1000, "Upload success!", "Image uploaded to " + endpointName + " and URL copied to clipboard.", ToolTipIcon.Info);
 
                     filename = result.Split('/', '\\').Last();
@@ -215,7 +261,7 @@ namespace PostHttp {
                     break;
                 }
                 if (result.StartsWith("http")) {
-                    this.AddLog(result);
+                    this.AddLog(result, (new FileInfo(file).Length / 1000) + " kB");
                     finalCopy += result + "\n";
                 }
             }
@@ -235,7 +281,9 @@ namespace PostHttp {
 
         public string UploadToEndPoint(MemoryStream ms, string filename) {
             string Filename = Uri.EscapeDataString(filename.Split('/', '\\').Last());
-            byte[] writeData = Encoding.ASCII.GetBytes((filename == this.endpointName ? "" : "filename=" + Filename) + "&file=" + LongDataEscape(Convert.ToBase64String(ms.ToArray())));
+            byte[] writeData = Encoding.ASCII.GetBytes((filename == this.endpointName ? "" : "filename=" + Filename) +
+                                                       (this.endpointAuthorization != "" ? "&auth=" + LongDataEscape(this.base64Encode(this.endpointAuthorization)) : "") +
+                                                       "&file=" + LongDataEscape(Convert.ToBase64String(ms.ToArray())));
 
             this.ProgressBar.Start(filename, writeData.Length);
 
