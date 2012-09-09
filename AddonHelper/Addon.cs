@@ -106,19 +106,6 @@ namespace AddonHelper {
             piEnabled.SetValue(fiListener.GetValue(form), enabled, null);
         }
 
-        /// <summary>
-        /// Formats a given filename, based on several template variables:
-        /// <list type="bullet">
-        ///     <item><term>%ADDON%</term><description>The name of the addon</description></item>
-        ///     <item><term>%DATE%</term><description>Current date in the usual .Net format except / is replaced with -.</description></item>
-        ///     <item><term>%TIME%</term><description>Current time in the usual .Net format except : is replaced with ..</description></item>
-        ///     <item><term>%EPOCH%</term><description>Current epoch time (amount of seconds passed since 1/1/1970)</description></item>
-        ///     <item><term>%EPOCHX%</term><description>Current epoch time in a hexadecimal format</description></item>
-        ///     <item><term>%FILENAME%</term><description>The original filename</description></item>
-        /// </list>
-        /// </summary>
-        /// <param name="origFilename">The original filename</param>
-        /// <returns>Formatted filename</returns>
         private string formatFilename(string origFilename) {
             string fnm = appSettings.GetString("BackupsFormat");
             fnm = fnm.Replace("%ADDON%", this.GetType().Name);
