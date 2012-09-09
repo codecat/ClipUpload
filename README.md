@@ -2,6 +2,7 @@ ClipUpload 3
 ============
 
 By Angelo Geels (http://angelog.nl/) and contributors.
+
 Visit http://clipupload.net/ for more info on the project!
 
 General Info
@@ -12,7 +13,6 @@ The Visual Studio 2010 solution for ClipUpload 3 has 11 projects associated to i
  - GlobalHook: Library that handles global Windows hooks.
  - Dropbox: The Dropbox addon
  - FTP: The FTP addon
- - Gett: Unfinished Ge.tt addon
  - Imgur: The Imgur addon
  - Pastebin: The Pastebin addon
  - PostHttp: The http POST method addon
