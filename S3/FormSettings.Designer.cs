@@ -295,11 +295,6 @@
             this.expires.Name = "expires";
             this.expires.Size = new System.Drawing.Size(71, 20);
             this.expires.TabIndex = 31;
-            this.expires.Value = new decimal(new int[] {
-            7,
-            0,
-            0,
-            0});
             // 
             // shorten
             // 

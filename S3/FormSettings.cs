@@ -24,6 +24,7 @@ namespace S3 {
             shorten.Checked = mainClass.shorten;
             https.Checked = mainClass.https;
             appendext.Checked = mainClass.appendExt;
+            expires.Value = mainClass.expires;
 
             int selIndex = 0;
             switch (mainClass.imageFormat.ToLower()) {

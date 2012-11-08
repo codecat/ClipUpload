@@ -258,8 +258,7 @@ namespace S3 {
                         break;
 
                     string url = GenerateURL( Uri.EscapeDataString(filename));
-                    //this.AddLog(url);
-
+  
                     finalCopy += url + "\n";
                 }
 
@@ -367,7 +366,7 @@ namespace S3 {
                 url = url.Replace(@"https://", @"http://");
             }
 
-            if (shorten) {
+            if (shorten ) {
                 //create is.gd url
                 string resp = "";
                 try
@@ -381,7 +380,15 @@ namespace S3 {
                     url = resp;
                     if (appendExt)
                     {
-                        url += "?." + imageFormat.ToLower();
+                        if (System.IO.Path.GetExtension(objectName).ToLower() == "png")
+                        {
+                            url += "?" + System.IO.Path.GetExtension(objectName).ToLower();
+                        }
+                        else
+                        {
+                            url += "?" + System.IO.Path.GetFileName(objectName).ToLower();
+                        }
+                        
                     }
                 }
                     
