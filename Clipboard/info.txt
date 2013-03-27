@@ -1,0 +1,7 @@
+Name=ClipBoard
+Author=Jed
+Icon=Icon.ico
+Enabled=True
+Entry=ClipBoard.dll
+Namespace=ClipBoard
+Class=ClipBoard
