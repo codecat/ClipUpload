@@ -1,0 +1,7 @@
+Name=S3
+Author=Jed
+Icon=Icon.ico
+Enabled=True
+Entry=S3.dll
+Namespace=S3
+Class=S3
