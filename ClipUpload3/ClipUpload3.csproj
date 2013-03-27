@@ -41,6 +41,10 @@
     <StartupObject />
   </PropertyGroup>
   <ItemGroup>
+    <Reference Include="GlobalHook, Version=3.0.1.37647, Culture=neutral, processorArchitecture=MSIL">
+      <SpecificVersion>False</SpecificVersion>
+      <HintPath>.\GlobalHook.dll</HintPath>
+    </Reference>
     <Reference Include="System" />
     <Reference Include="System.Core" />
     <Reference Include="System.Xml.Linq" />
@@ -107,12 +111,6 @@
   </ItemGroup>
   <ItemGroup>
     <Content Include="image_up.ico" />
-  </ItemGroup>
-  <ItemGroup>
-    <ProjectReference Include="..\..\..\Documents\Magic Briefcase\Projects\GlobalHook\GlobalHook\GlobalHook.csproj">
-      <Project>{F52AA97E-180A-40ED-8F2B-09080171D6C7}</Project>
-      <Name>GlobalHook</Name>
-    </ProjectReference>
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
   <!-- To modify your build process, add your task inside one of the targets below and uncomment it. 
