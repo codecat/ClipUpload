@@ -1,9 +1,7 @@
 ClipUpload 3
 ============
 
-By Angelo Geels (http://angelog.nl/) and contributors.
-
-Visit http://clipupload.net/ for more info on the project!
+No longer maintained.
 
 General Info
 ------------
